@@ -2117,7 +2117,6 @@ function isoWeek(date){const d=new Date(Date.UTC(date.getFullYear(),date.getMont
 function addWeeks(wk,n){const[y,w]=wk.split('-W').map(Number);const d=new Date(Date.UTC(y,0,4));d.setUTCDate(d.getUTCDate()+(w-1)*7-(d.getUTCDay()||7)+1+n*7);return isoWeek(d);}
 function weekLbl(wk){const[y,w]=wk.split('-W').map(Number);const d=new Date(Date.UTC(y,0,4));d.setUTCDate(d.getUTCDate()+(w-1)*7-(d.getUTCDay()||7)+1);const e=new Date(d);e.setUTCDate(e.getUTCDate()+6);const f=v=>v.toLocaleDateString(undefined,{day:'2-digit',month:'short'});return tr('week_lbl')+' '+w+' · '+f(d)+' – '+f(e);}
 function ds(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-</script>
 
 // ═══════════════════════════════════════════════════════
 // MEJORAS v6.0
@@ -2536,6 +2535,7 @@ renderDashboard=function(){
   renderAlertHist();
 };
 
+</script>
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load',function(){
