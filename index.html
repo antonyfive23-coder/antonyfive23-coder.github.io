@@ -1637,10 +1637,14 @@ function setLogo(src){
 }
 function showApp(){
   document.getElementById('app').classList.add('on');
-  // Forzar TODOS los módulos activos siempre
-  const m={};
-  ['ppcl','piscina','acs','potable','checklist','incidencias','alertas'].forEach(id=>m[id]=true);
-  sv('__mods',JSON.stringify(m));
+  // Inicializar __mods en localStorage con todos activos
+  try{
+    const existing=localStorage.getItem('__mods_local');
+    if(!existing){
+      const m={};['ppcl','piscina','acs','potable','checklist','incidencias','alertas'].forEach(id=>m[id]=true);
+      localStorage.setItem('__mods_local',JSON.stringify(m));
+    }
+  }catch(e){}
   // Datos demo si cuenta nueva
   if(!gv('__conds')&&!gv('__piscs')&&!gv('__grifos')){
     sv('__conds',JSON.stringify([{n:1,name:'Condensador Evap. Nº 1'},{n:2,name:'Condensador Evap. Nº 2'}]));
@@ -1674,8 +1678,24 @@ function connectData(c,onReady){
     if(onReady){onReady();onReady=null;}
   },e=>{setSS('err','❌ '+e.message);if(onReady){onReady();onReady=null;}});
 }
-function gv(k){return data[k]||'';}
-function sv(k,v){data[k]=v;}
+function gv(k){
+  // __mods siempre desde localStorage, nunca desde Firebase
+  if(k==='__mods'){
+    try{const s=localStorage.getItem('__mods_local');if(s)return s;}catch(e){}
+    // Por defecto todos activos
+    const def={};['ppcl','piscina','acs','potable','checklist','incidencias','alertas'].forEach(id=>def[id]=true);
+    return JSON.stringify(def);
+  }
+  return data[k]||'';
+}
+function sv(k,v){
+  if(k==='__mods'){
+    // __mods solo en localStorage, nunca en Firebase
+    try{localStorage.setItem('__mods_local',v);}catch(e){}
+    return;
+  }
+  data[k]=v;
+}
 function mk(...p){return p.join('__');}
 function doSave(){
   data.__ts=Date.now();
@@ -1714,7 +1734,6 @@ function initApp(){
   initLang();
 }
 function refreshAll(){
-  try{const m=getMods();['ppcl','piscina','acs','potable','checklist','incidencias','alertas'].forEach(id=>{m[id]=true;});sv('__mods',JSON.stringify(m));}catch(e){}
   renderCondList();renderPiscList();renderGrifoList();
   renderPPCL();renderPiscina();renderACS();renderPotable();
   renderDashboard();renderIncidencias();checkAlerts();loadMods();
@@ -1741,8 +1760,28 @@ function tog(head){
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2500);}
 function logout(){if(!confirm(tr('confirm_logout')))return;co=null;data={};document.getElementById('app').classList.remove('on');document.getElementById('loginScreen').style.display='flex';document.getElementById('step1').style.display='';document.getElementById('btnContinue').style.display='';document.getElementById('step2').classList.remove('on');document.getElementById('codeInp').value='';pinBuf='';updateDots();}
 // ═══ MODULES ════════════════════════════════════════
-function getMods(){try{const s=gv('__mods');if(s)return JSON.parse(s);}catch(e){}return {};}
-function modOn(id){const m=getMods();return m[id]!==false;}
+function getMods(){
+  try{
+    const s=localStorage.getItem('__mods_local');
+    if(s){
+      const m=JSON.parse(s);
+      // Asegurar que todos los módulos principales están activos
+      ['ppcl','piscina','acs','potable','checklist','incidencias','alertas'].forEach(id=>{
+        if(m[id]===undefined)m[id]=true;
+      });
+      return m;
+    }
+  }catch(e){}
+  // Por defecto TODOS activos
+  const def={};
+  ['ppcl','piscina','acs','potable','checklist','incidencias','alertas'].forEach(id=>def[id]=true);
+  return def;
+}
+function modOn(id){
+  // Módulos principales siempre activos
+  if(['ppcl','piscina','acs','potable','checklist','incidencias','alertas'].includes(id))return true;
+  const m=getMods();return m[id]!==false;
+}
 function loadMods(){
   MODULES.forEach(mod=>{
     const on=modOn(mod.id);
