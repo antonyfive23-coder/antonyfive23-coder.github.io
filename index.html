@@ -27,12 +27,39 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
 (function(){
-  function load(src,cb){var s=document.createElement('script');s.src=src;s.onload=cb;s.onerror=function(){console.warn('CDN error:',src);cb();};document.head.appendChild(s);}
+  function load(src,cb){
+    var s=document.createElement('script');s.src=src;
+    s.onload=function(){cb(true);};
+    s.onerror=function(){
+      console.warn('CDN principal fallido, probando alternativo:',src);
+      // Intentar CDN alternativo
+      var alt=src.replace('www.gstatic.com/firebasejs/10.12.2','cdn.jsdelivr.net/npm/firebase@10.12.2/compat');
+      var s2=document.createElement('script');s2.src=alt;
+      s2.onload=function(){cb(true);};
+      s2.onerror=function(){console.error('Ambos CDN fallaron para:',src);cb(false);};
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(s);
+  }
   var B='https://www.gstatic.com/firebasejs/10.12.2/';
-  load(B+'firebase-app-compat.js',function(){
-    load(B+'firebase-database-compat.js',function(){
-      load(B+'firebase-auth-compat.js',function(){
-        if(window.__fbOnReady)window.__fbOnReady();
+  load(B+'firebase-app-compat.js',function(ok1){
+    load(B+'firebase-database-compat.js',function(ok2){
+      load(B+'firebase-auth-compat.js',function(ok3){
+        // Esperar a que firebase esté disponible globalmente
+        var tries=0;
+        var check=setInterval(function(){
+          tries++;
+          if(typeof firebase!=='undefined'){
+            clearInterval(check);
+            if(window.__fbOnReady)window.__fbOnReady();
+          } else if(tries>40){
+            clearInterval(check);
+            console.error('Firebase no disponible tras espera');
+            // Mostrar error útil al usuario
+            var err=document.getElementById('codeErr2')||document.getElementById('codeErr');
+            if(err)err.textContent='⚠️ Error de conexión. Abre la app desde GitHub Pages, no como archivo local.';
+          }
+        },250);
       });
     });
   });
@@ -2067,66 +2094,8 @@ function saveInstalaciones(){
   sv('__conds',JSON.stringify(conds));sv('__piscs',JSON.stringify(piscs));sv('__grifos',JSON.stringify(grifos));
   doSave();toast(tr('t_inst_saved'));renderPPCL();renderPiscina();renderACS();
 }
-// ═══ PDF REPORT ═════════════════════════════════════
-function genPDF(){
-  const c=co||{name:'AquaControl Pro',code:'—'};
-  const yr=parseInt(document.getElementById('ppclYr').value)||new Date().getFullYear();
-  const mo=ppclMo;const now=new Date();const days=new Date(yr,mo+1,0).getDate();
-  const conds=getConds();const piscs=getPiscs();const grifos=getGrifos();
-  const fKey=mk('firma',ds(now),'manana');
-  const fImg=gv(fKey+'__img');const fNom=gv(fKey+'__nom');const fFec=gv(fKey+'__fec');
-  let html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+tr('pdf_title')+' — '+c.name+' · '+MOS[mo]+' '+yr+'</title><style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;font-size:9px;color:#1a2332;padding:12mm;}h1{font-size:18px;font-weight:800;color:#0a1628;margin-bottom:4px;}h2{font-size:12px;font-weight:700;color:#0a1628;margin:12px 0 5px;padding-bottom:3px;border-bottom:2px solid #2589c7;}h3{font-size:10px;font-weight:700;color:#2589c7;margin:6px 0 3px;}table{width:100%;border-collapse:collapse;margin-bottom:8px;font-size:8px;}th{background:#f0f4f8;padding:4px 6px;text-align:left;font-weight:700;color:#4a5568;border:1px solid #e2e8f0;}td{padding:3px 6px;border:1px solid #e2e8f0;}tr:nth-child(even) td{background:#f7f9fc;}.hdr{background:#0a1628;color:#fff;padding:12px 16px;border-radius:8px;margin-bottom:14px;display:flex;justify-content:space-between;}.ok{color:#1a7a4a;font-weight:700}.bad{color:#c0392b;font-weight:700}.firma-sec{border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-top:12px;display:flex;gap:14px;align-items:center;}.firma-img{border:1px solid #e2e8f0;border-radius:6px;max-width:160px;}@media print{body{padding:6mm;}}</style></head><body>';
-  html+='<div class="hdr"><div><div style="font-size:16px;font-weight:800">💧 AquaControl Pro</div><div style="font-size:10px;opacity:.6">'+c.name+' · Código: '+c.code+'</div></div><div style="text-align:right;font-size:9px;opacity:.7"><div>Informe Oficial — '+MOS[mo]+' '+yr+'</div><div>'+now.toLocaleString('es-ES')+'</div></div></div>';
-  // CONDENSADORES
-  html+='<h2>🌡️ '+tr('pdf_evap')+'</h2>';
-  conds.forEach(cond=>{
-    html+='<h3>'+cond.name+'</h3><table><thead><tr><th>'+tr('pdf_day')+'</th><th>'+tr('pdf_bioc')+'</th><th>'+tr('pdf_temp')+'</th><th>pH</th><th>'+tr('pdf_turb')+'</th></tr></thead><tbody>';
-    for(let d=1;d<=days;d++){
-      const b=gv(mk('ppcl',yr,mo,cond.n,d,'biocidad'));const t=gv(mk('ppcl',yr,mo,cond.n,d,'temperatura'));const p=gv(mk('ppcl',yr,mo,cond.n,d,'ph'));const tr=gv(mk('ppcl',yr,mo,cond.n,d,'turbidez'));
-      if(!b&&!t&&!p&&!tr)continue;
-      const pc=parseFloat(p);const phcls=pc<7||pc>8.5?'bad':'ok';
-      html+='<tr><td><b>'+d+'</b></td><td>'+( b||'—')+'</td><td>'+(t||'—')+'</td><td class="'+phcls+'">'+(p||'—')+'</td><td>'+(tr||'—')+'</td></tr>';
-    }
-    html+='</tbody></table>';
-  });
-  // PISCINAS
-  html+='<h2>🏊 '+tr('pdf_pools')+'</h2>';
-  const todayStr=ds(now);
-  piscs.forEach(p=>{
-    html+='<h3>'+(p.tipo==='jacuzzi'?'🛁':'🏊')+' '+p.name+'</h3><table><thead><tr><th>'+tr('pdf_session')+'</th><th>'+tr('pdf_chlorine')+'</th><th>pH</th><th>'+tr('pdf_temp')+'</th><th>'+tr('cond_turb')+'</th><th>'+tr('pdf_algae')+'</th></tr></thead><tbody>';
-    ['manana','tarde'].forEach(ses=>{
-      const cl=gv(mk('pisc',todayStr,ses,p.id,'cloro'));const ph=gv(mk('pisc',todayStr,ses,p.id,'ph'));const tm=gv(mk('pisc',todayStr,ses,p.id,'temp'));const tb=gv(mk('pisc',todayStr,ses,p.id,'turb'));const al=gv(mk('pisc',todayStr,ses,p.id,'algas'));
-      const phcls=parseFloat(ph)<7.2||parseFloat(ph)>7.8?'bad':'ok';const clcls=parseFloat(cl)<0.5||parseFloat(cl)>2?'bad':'ok';
-      html+='<tr><td>'+(ses==='manana'?tr('pdf_morning'):tr('pdf_afternoon'))+'</td><td class="'+clcls+'">'+(cl||'—')+'</td><td class="'+phcls+'">'+(ph||'—')+'</td><td>'+(tm||'—')+'</td><td>'+(tb||'—')+'</td><td>'+(al||'—')+'</td></tr>';
-    });
-    html+='</tbody></table>';
-  });
-  // ACS
-  html+='<h2>🚿 '+tr('pdf_acs')+'</h2><table><thead><tr><th>Nº</th><th>GRIFO</th><th>'+tr('pdf_turb_af')+'</th><th>'+tr('pdf_turb_ac')+'</th><th>'+tr('pdf_apertura')+'</th></tr></thead><tbody>';
-  grifos.forEach(g=>{html+='<tr><td><b>'+g.ni+'</b></td><td>'+g.name+'</td><td>'+(gv(mk('acs_s',acsWk,g.n,'tf'))||'—')+'</td><td>'+(gv(mk('acs_s',acsWk,g.n,'tc'))||'—')+'</td><td>'+(gv(mk('acs_s',acsWk,g.n,'ap'))||'—')+'</td></tr>';});
-  html+='</tbody></table>';
-  // AGUA POTABLE
-  html+='<h2>💧 '+tr('pdf_potable')+'</h2><table><thead><tr><th>'+tr('pot_point')+'</th><th>'+tr('pdf_cl_free')+'</th><th>pH</th><th>'+tr('pot_turb')+'</th><th>'+tr('pot_result')+'</th></tr></thead><tbody>';
-  PUNTOS.forEach(p=>{const b=mk('pot',potWk,p.n);html+='<tr><td>'+p.name+'</td><td>'+(gv(b+'__cl')||'—')+'</td><td>'+(gv(b+'__ph')||'—')+'</td><td>'+(gv(b+'__trb')||'—')+'</td><td>'+(gv(b+'__res')||'—')+'</td></tr>';});
-  html+='</tbody></table>';
-  // INCIDENCIAS
-  const abiertas=getIncs().filter(i=>i.status!=='cerrada');
-  if(abiertas.length){
-    html+='<h2>🔧 '+tr('pdf_inc_active')+'</h2><table><thead><tr><th>'+tr('pdf_prio')+'</th><th>'+tr('pdf_inc_title')+'</th><th>'+tr('pdf_ubic')+'</th><th>'+tr('pdf_status')+'</th><th>'+tr('pdf_date')+'</th></tr></thead><tbody>';
-    abiertas.forEach(i=>{html+='<tr><td>'+i.prio+'</td><td>'+i.titulo+'</td><td>'+(i.ubic||'—')+'</td><td>'+i.status+'</td><td>'+i.fecha+'</td></tr>';});
-    html+='</tbody></table>';
-  }
-  // FIRMA
-  html+='<h2>✍️ '+tr('pdf_firma')+'</h2>';
-  html+='<div class="firma-sec">';
-  if(fImg)html+='<img src="'+fImg+'" class="firma-img"><div><div style="font-weight:700">👤 '+(fNom||'—')+'</div><div style="color:#8899aa;margin-top:4px">📅 '+(fFec||'—')+'</div></div>';
-  else html+='<div style="color:#8899aa;font-style:italic">'+tr('pdf_no_firma')+'</div>';
-  html+='</div>';
-  html+='<div style="margin-top:16px;text-align:center;font-size:7px;color:#b0bec5;border-top:1px solid #e2e8f0;padding-top:8px">AquaControl Pro · '+c.name+' · '+c.code+' · '+now.toLocaleString()+'</div>';
-  html+='</body></html>';
-  const w=window.open('','_blank');w.document.write(html);w.document.close();setTimeout(()=>w.print(),600);
-  toast(tr('t_pdf'));
-}
+// genPDF — ver implementación mejorada en JS de mejoras v6.0
+
 // ═══ EXPORT ═════════════════════════════════════════
 function exportJSON(){
   const b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
@@ -2137,15 +2106,8 @@ function importJSON(){
   inp.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{if(!confirm(tr('confirm_import')))return;data={...JSON.parse(ev.target.result),__ts:Date.now()};doSave();refreshAll();toast(tr('t_imported'));}catch(e){toast(tr('t_import_err'));}};r.readAsText(f);};
   inp.click();
 }
-function exportExcel(){
-  if(typeof XLSX==='undefined'){toast('❌ XLSX no disponible');return;}
-  const wb=XLSX.utils.book_new();const yr=parseInt(document.getElementById('ppclYr').value)||new Date().getFullYear();
-  const conds=getConds();const days=new Date(yr,ppclMo+1,0).getDate();
-  const rows=[['DÍA',...conds.flatMap(c=>[c.name+' BIO',c.name+' TEMP',c.name+' PH',c.name+' TURB'])]];
-  for(let d=1;d<=days;d++)rows.push([d,...conds.flatMap(c=>['biocidad','temperatura','ph','turbidez'].map(f=>gv(mk('ppcl',yr,ppclMo,c.n,d,f))))]);
-  const ws=XLSX.utils.aoa_to_sheet(rows);XLSX.utils.book_append_sheet(wb,ws,'Condensadores');
-  XLSX.writeFile(wb,'AquaPro_'+(co?co.code:'')+'_'+MOS_S[ppclMo]+yr+'.xlsx');toast(tr('t_excel'));
-}
+// exportExcel — ver implementación mejorada en JS de mejoras v6.0
+
 function sendEmail(){
   const c=co?co.name:'—';const s=tr('export_subj')+c+' — '+MOS[ppclMo];
   window.open('mailto:?subject='+encodeURIComponent(s)+'&body='+encodeURIComponent(tr('export_body')+c+tr('export_body2')));
