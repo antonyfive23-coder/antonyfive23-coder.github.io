@@ -224,10 +224,10 @@ select.ci2{cursor:pointer;}
 .cgrid{display:grid;gap:0;border-left:1px solid var(--border);}
 .ccol{border-right:1px solid var(--border);}
 .chdr{background:var(--co,var(--navy));color:rgba(255,255,255,.9);padding:8px 12px;font-size:10px;font-weight:700;}
-.csh{display:grid;grid-template-columns:34px 1fr 1fr 1fr 1fr;background:var(--surface2);}
+.csh{display:grid;grid-template-columns:34px 1fr 1fr 1fr 1fr 1fr;background:var(--surface2);}
 .cshc{padding:5px 3px;font-size:9px;font-weight:700;color:var(--text3);text-align:center;border-right:1px solid var(--border);border-bottom:1px solid var(--border);white-space:pre-line;line-height:1.2;}
 .cshc:last-child{border-right:none;}
-.crow{display:grid;grid-template-columns:34px 1fr 1fr 1fr 1fr;border-bottom:1px solid var(--border);}
+.crow{display:grid;grid-template-columns:34px 1fr 1fr 1fr 1fr 1fr;border-bottom:1px solid var(--border);}
 .crow:last-child{border-bottom:none;}
 .crow:hover{background:rgba(37,137,199,.02);}
 .crow.td{background:rgba(37,137,199,.04);}
@@ -510,10 +510,11 @@ textarea.fi{resize:vertical;min-height:80px;}
     </div>
     <!-- CONDENSADORES -->
     <div class="tab" id="tab-ppcl">
-      <div class="srow">
-        <div class="sc bl"><div class="sn" id="ppclTot">0</div><div class="sl">REGISTROS</div></div>
-        <div class="sc gr"><div class="sn" id="ppclOk">0</div><div class="sl">CORRECTOS</div></div>
-        <div class="sc am"><div class="sn" id="ppclPct">0%</div><div class="sl">COMPLETADO</div></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
+        <div class="sc bl"><div class="sn" id="ppclTot">0</div><div class="sl">TOTAL</div></div>
+        <div class="sc gr"><div class="sn" id="ppclOk">0</div><div class="sl">COMPLETADOS</div></div>
+        <div class="sc rd"><div class="sn" id="ppclPend">0</div><div class="sl">PENDIENTES</div></div>
+        <div class="sc am"><div class="sn" id="ppclPct">0%</div><div class="sl">% COMPLETADO</div></div>
       </div>
       <div class="card">
         <div class="card-head" onclick="tog(this)">
@@ -537,10 +538,11 @@ textarea.fi{resize:vertical;min-height:80px;}
     </div>
     <!-- PISCINAS -->
     <div class="tab" id="tab-piscina">
-      <div class="srow">
-        <div class="sc bl"><div class="sn" id="piscTot">0</div><div class="sl">PARAMS HOY</div></div>
-        <div class="sc gr"><div class="sn" id="piscOk">0</div><div class="sl">EN RANGO</div></div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
+        <div class="sc bl"><div class="sn" id="piscTot">0</div><div class="sl">PARÁMETROS</div></div>
+        <div class="sc gr"><div class="sn" id="piscOk">0</div><div class="sl">COMPLETADOS</div></div>
         <div class="sc rd"><div class="sn" id="piscAlert">0</div><div class="sl">ALERTAS</div></div>
+        <div class="sc am"><div class="sn" id="piscPct">0%</div><div class="sl">COMPLETADO</div></div>
       </div>
       <div class="card">
         <div class="card-head" onclick="tog(this)">
@@ -549,6 +551,13 @@ textarea.fi{resize:vertical;min-height:80px;}
           <span class="ctog">▼</span>
         </div>
         <div class="cbody on" style="max-height:9999px">
+          <!-- Técnico/DNI piscinas -->
+          <div style="display:flex;gap:8px;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)">
+            <div style="flex:1"><div style="font-size:9px;font-weight:700;color:var(--text3);margin-bottom:4px">TÉCNICO RESPONSABLE</div>
+            <input class="fi" id="piscTecnico" placeholder="Nombre del técnico" style="font-size:12px" oninput="sv('__tecnico',this.value)"></div>
+            <div style="width:120px"><div style="font-size:9px;font-weight:700;color:var(--text3);margin-bottom:4px">DNI</div>
+            <input class="fi" id="piscDNI" placeholder="12345678A" style="font-size:12px;font-family:'JetBrains Mono',monospace" oninput="sv('__tecnicoDNI',this.value)"></div>
+          </div>
           <div style="padding:12px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <span class="ylbl">FECHA</span>
             <input type="date" class="dinp" id="piscDate" style="width:auto" onchange="renderPiscina()">
@@ -1760,10 +1769,11 @@ function renderPPCL(){
     const col=document.createElement('div');col.className='ccol';
     const hdr=document.createElement('div');hdr.className='chdr';hdr.textContent=cond.name;col.appendChild(hdr);
     const sh=document.createElement('div');sh.className='csh';
-    [tr('cond_day'),tr('cond_bioc'),tr('cond_temp'),tr('cond_ph'),tr('cond_turb')].forEach(h=>{const d=document.createElement('div');d.className='cshc';d.textContent=h;sh.appendChild(d);});
+    [tr('cond_day'),tr('cond_bioc'),tr('cond_temp'),tr('cond_ph'),tr('cond_turb'),'TÉCNICO'].forEach(h=>{const d=document.createElement('div');d.className='cshc';d.textContent=h;sh.appendChild(d);});
     col.appendChild(sh);
     for(let d=1;d<=days;d++){
       const row=document.createElement('div');row.className='crow'+(thisM&&d===td?' td':'');
+      row.style.gridTemplateColumns='34px 1fr 1fr 1fr 1fr 1fr';
       const dn=document.createElement('div');dn.className='ccell';dn.innerHTML='<div class="dnum">'+d+'</div>';row.appendChild(dn);
       ['biocidad','temperatura','ph','turbidez'].forEach(f=>{
         const cell=document.createElement('div');cell.className='ccell';
@@ -1777,13 +1787,26 @@ function renderPPCL(){
         colorI(inp,f);tot++;if(inp.value)fill++;if(inp.classList.contains('bad'))alrt++;
         cell.appendChild(inp);row.appendChild(cell);
       });
+      // Columna técnico por fila
+      const tecCell=document.createElement('div');tecCell.className='ccell';
+      const kTec=mk('ppcl',yr,ppclMo,cond.n,d,'tec');
+      const tecInp=document.createElement('input');
+      tecInp.type='text';tecInp.className='ci2';tecInp.style.fontSize='9px';
+      tecInp.placeholder='Técnico';tecInp.value=gv(kTec)||gv('__tecnico')||'';
+      tecInp.dataset.k=kTec;
+      tecInp.addEventListener('change',e=>{sv(e.target.dataset.k,e.target.value);doSave();});
+      tecCell.appendChild(tecInp);row.appendChild(tecCell);
       col.appendChild(row);
     }
     grid.appendChild(col);
   });
-  document.getElementById('ppclTot').textContent=fill;
-  document.getElementById('ppclOk').textContent=fill-alrt;
+  document.getElementById('ppclTot').textContent=tot;
+  document.getElementById('ppclOk').textContent=fill;
+  const ppclPend=document.getElementById('ppclPend');if(ppclPend)ppclPend.textContent=tot-fill;
   document.getElementById('ppclPct').textContent=tot?Math.round(fill/tot*100)+'%':'0%';
+  // Cargar técnico guardado en campos
+  const pt=document.getElementById('ppclTecnico');if(pt&&!pt.value)pt.value=gv('__tecnico')||'';
+  const pd=document.getElementById('ppclDNI');if(pd&&!pd.value)pd.value=gv('__tecnicoDNI')||'';
 }
 function colorI(inp,f){
   const v=parseFloat(inp.value);if(!inp.value){inp.className='ci2';return;}
