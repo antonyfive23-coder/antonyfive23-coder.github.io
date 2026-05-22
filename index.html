@@ -1738,7 +1738,13 @@ function goTab(id,el){
   if(el)el.classList.add('on');
   document.querySelectorAll('#bnav .nitem').forEach(n=>n.classList.toggle('on',n.dataset.tab===id));
   if(id==='dashboard')renderDashboard();
+  if(id==='ppcl')renderPPCL();
+  if(id==='piscina')renderPiscina();
+  if(id==='acs')renderACS();
+  if(id==='potable')renderPotable();
   if(id==='checklist')renderChecklists();
+  if(id==='incidencias')renderIncidencias();
+  if(id==='config'){renderModules();renderAlertasCfg();renderCondList();renderPiscList();renderGrifoList();}
 }
 function toggleMenu(){document.getElementById('omenu').classList.toggle('on');}
 function cm(){document.getElementById('omenu').classList.remove('on');}
