@@ -449,6 +449,10 @@ textarea.fi{resize:vertical;min-height:80px;}
   <div class="main">
     <!-- DASHBOARD -->
     <div class="tab on" id="tab-dashboard">
+      <div id="dbgPanel"></div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="btn bp" style="flex:1;font-size:11px" onclick="emergencyReset()">🔄 Resetear e inicializar datos</button>
+      </div>
       <div id="alertsContainer"></div>
       <div class="kg">
         <div class="kc"><div class="kv" id="kpiReg" style="color:var(--co,var(--blue))">0</div><div class="kl">REGISTROS HOY</div><div style="font-size:9px;color:var(--text4);margin-top:2px" id="kpiSub">—</div></div>
@@ -1633,6 +1637,19 @@ function setLogo(src){
   const sl=document.getElementById('splLogo');
   if(sl)sl.innerHTML=src?'<img src="'+src+'">':'💧';
 }
+function emergencyReset(){
+  // Forzar datos de instalaciones
+  sv('__conds',JSON.stringify([{n:1,name:'Condensador Evap. Nº 1'},{n:2,name:'Condensador Evap. Nº 2'}]));
+  sv('__piscs',JSON.stringify([{id:'p1',name:'Piscina Principal',tipo:'piscina'},{id:'p2',name:'Piscina Infantil',tipo:'piscina'}]));
+  sv('__grifos',JSON.stringify([{n:1,ni:'G01',name:'Ducha vestuario hombres'},{n:2,ni:'G02',name:'Ducha vestuario mujeres'},{n:3,ni:'G03',name:'Grifo cocina'}]));
+  var mods={};['ppcl','piscina','acs','potable','checklist','incidencias','alertas','firma','fotos','graficas'].forEach(function(id){mods[id]=true;});
+  sv('__mods',JSON.stringify(mods));
+  doSave();
+  renderCondList();renderPiscList();renderGrifoList();
+  renderPPCL();renderPiscina();renderACS();renderPotable();
+  renderChecklists();renderIncidencias();renderDashboard();loadMods();
+  toast('✅ Datos inicializados correctamente');
+}
 function showApp(){
   document.getElementById('app').classList.add('on');
   // Forzar módulos activos SIEMPRE
@@ -2030,6 +2047,21 @@ function renderIncidencias(){
 }
 // ═══ DASHBOARD ══════════════════════════════════════
 function renderDashboard(){
+  // Debug temporal - mostrar estado de datos
+  var dbg=document.getElementById('dbgPanel');
+  if(dbg){
+    var dc=getConds();var dp=getPiscs();var dg=getGrifos();
+    dbg.innerHTML='<div style="background:#1a2332;color:#4ade80;font-family:monospace;font-size:10px;padding:10px;border-radius:8px;margin-bottom:10px">'
+      +'<b>DEBUG v8.1</b><br>'
+      +'Condensadores: '+dc.length+'<br>'
+      +'Piscinas: '+dp.length+'<br>'
+      +'Grifos: '+dg.length+'<br>'
+      +'__conds raw: '+(gv("__conds")||"VACÍO")+'<br>'
+      +'__mods: '+(gv("__mods")||"VACÍO")+'<br>'
+      +'data keys: '+Object.keys(data).length+'<br>'
+      +'</div>';
+  }
+
   const yr=parseInt(document.getElementById('ppclYr').value)||new Date().getFullYear();
   const days=new Date(yr,ppclMo+1,0).getDate();const conds=getConds();
   let tot=0,fill=0,alrt=0;
