@@ -446,6 +446,8 @@ textarea.fi{resize:vertical;min-height:80px;}
   </div>
   <button id="fab" onclick="doSave()">💾</button>
   <div id="toast"></div>
+<div id="jsErrPanel" style="display:none;position:fixed;bottom:80px;left:10px;right:10px;background:#c0392b;color:#fff;padding:10px;border-radius:8px;font-size:11px;font-family:monospace;z-index:9999;max-height:120px;overflow-y:auto"></div>
+<div </div>
   <div class="main">
     <!-- DASHBOARD -->
     <div class="tab on" id="tab-dashboard">
@@ -542,6 +544,7 @@ textarea.fi{resize:vertical;min-height:80px;}
         <div class="cbody on" style="max-height:9999px">
           <div class="pills" id="ppclPills"></div>
           <div class="yrow"><span class="ylbl">AÑO</span><input type="number" class="dinp" id="ppclYr" value="2026" min="2020" max="2040" onchange="renderPPCL()"></div>
+          <div id="ppclDebug" style="display:none;color:red;font-size:11px;padding:8px;background:#fff0f0;border-radius:6px;margin:8px"></div>
           <div style="overflow-x:auto"><div id="ppclGrid"></div></div>
         </div>
       </div>
@@ -856,6 +859,11 @@ textarea.fi{resize:vertical;min-height:80px;}
 </div>
 <script>
 'use strict';
+window.onerror=function(msg,src,line,col,err){
+  var p=document.getElementById('jsErrPanel');
+  if(p){p.style.display='block';p.innerHTML+='<b>ERROR JS:</b> '+msg+'<br>Línea '+line+': '+(err?err.stack.split('\n')[0]:'')+'<br>';}
+  return false;
+};
 
 // ═══ i18n MULTILANGUAGE ══════════════════════════════════════════════════
 const I18N={
@@ -1855,6 +1863,8 @@ function renderPPCL(){
   document.getElementById('ppclOk').textContent=fill-alrt;
   document.getElementById('ppclPct').textContent=tot?Math.round(fill/tot*100)+'%':'0%';
 }
+
+
 function colorI(inp,f){
   const v=parseFloat(inp.value);if(!inp.value){inp.className='ci2';return;}
   let c='ok';
