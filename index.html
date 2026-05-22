@@ -1714,7 +1714,11 @@ function goTab(id,el){
   if(el)el.classList.add('on');
   document.querySelectorAll('#bnav .nitem').forEach(n=>n.classList.toggle('on',n.dataset.tab===id));
   if(id==='dashboard')renderDashboard();
-  if(id==='ppcl')renderPPCL();
+  if(id==='ppcl'){
+    var g=document.getElementById('ppclGrid');
+    if(g)g.innerHTML='<div style="padding:20px;color:green;font-size:16px;font-weight:bold">Cargando tabla...</div>';
+    setTimeout(function(){renderPPCL();},100);
+  }
   if(id==='piscina')renderPiscina();
   if(id==='acs')renderACS();
   if(id==='potable')renderPotable();
