@@ -4,15 +4,12 @@
 <meta charset="UTF-8">
 <script>
 (function(){
-  document.addEventListener('contextmenu',function(e){e.preventDefault();return false;});
-  document.addEventListener('keydown',function(e){
-    if(e.key==='F12'){e.preventDefault();return false;}
-    if(e.ctrlKey&&e.key==='u'){e.preventDefault();return false;}
-    if(e.ctrlKey&&e.shiftKey&&'ijcIJC'.includes(e.key)){e.preventDefault();return false;}
-  });
-  document.addEventListener('selectstart',function(e){
-    if(e.target.tagName!=='INPUT'&&e.target.tagName!=='TEXTAREA'){e.preventDefault();}
-  });
+  // Protección básica solo en producción
+  if(location.hostname!=='localhost'&&location.hostname!=='127.0.0.1'){
+    document.addEventListener('selectstart',function(e){
+      if(e.target.tagName!=='INPUT'&&e.target.tagName!=='TEXTAREA'){e.preventDefault();}
+    });
+  }
 })();
 </script>
 <link rel="manifest" href="manifest.json">
@@ -65,7 +62,37 @@
   --red-l:rgba(192,57,43,0.1);--blue-l:rgba(37,137,199,0.1);
   --text:#1a2332;--text2:#4a5568;--text3:#8899aa;--text4:#b0bec5;
   --co:#2589c7;--safe-b:env(safe-area-inset-bottom,0px);--nav-h:64px;
+  /* Transiciones suaves globales */
+  --transition:all 0.2s ease;
 }
+/* ── DARK MODE ─────────────────────────────── */
+[data-theme="dark"]{
+  --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--border:#30363d;
+  --text:#e6edf3;--text2:#8b949e;--text3:#6e7681;--text4:#484f58;
+  --green-l:rgba(26,122,74,0.2);--amber-l:rgba(201,123,0,0.2);
+  --red-l:rgba(192,57,43,0.2);--blue-l:rgba(37,137,199,0.2);
+}
+[data-theme="dark"] body{background:var(--bg);}
+[data-theme="dark"] .ci2{background:var(--surface2);color:var(--text);border-color:var(--border);}
+[data-theme="dark"] .fi{background:var(--surface2);color:var(--text);border-color:var(--border);}
+[data-theme="dark"] .dt th{background:var(--surface2);}
+[data-theme="dark"] .dt td{color:var(--text);}
+/* Animaciones suaves en inputs */
+.ci2,.fi,.btn,.card{transition:var(--transition);}
+/* Toast mejorado con tipos */
+#toast.success{background:var(--green);}
+#toast.error{background:var(--red);}
+#toast.warn{background:var(--amber);}
+/* Skeleton loading */
+.skel{background:linear-gradient(90deg,var(--surface2) 25%,var(--border) 50%,var(--surface2) 75%);background-size:200% 100%;animation:skel 1.5s infinite;border-radius:6px;height:32px;}
+@keyframes skel{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+/* Badge de auditoría */
+.audit-badge{display:inline-flex;align-items:center;gap:4px;background:var(--green-l);color:var(--green);border:1px solid rgba(26,122,74,0.2);border-radius:20px;padding:3px 10px;font-size:9px;font-weight:700;letter-spacing:.3px;}
+/* QR container */
+.qr-box{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;margin-top:10px;}
+/* IndexedDB offline badge */
+.offline-badge{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--amber);color:#fff;padding:4px 16px;border-radius:20px;font-size:11px;font-weight:700;z-index:500;display:none;}
+.offline-badge.on{display:block;}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow-x:hidden;}
 body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);overscroll-behavior:none;}
@@ -418,6 +445,7 @@ textarea.fi{resize:vertical;min-height:80px;}
       <div class="spill pend" id="syncPill"><div class="sdot2"></div><span id="syncTxt">—</span></div>
       <span class="hdr-clk" id="clk">--:--</span>
       <button class="hdr-sv" id="hdrSvBtn" onclick="doSave()">💾</button>
+      <button class="hdr-sv" onclick="toggleDark()" id="btnDark" title="Modo oscuro" style="padding:6px 8px;font-size:14px">🌙</button>
       <button class="hdr-more" onclick="toggleMenu()">⋮</button>
     </div>
   </header>
@@ -425,7 +453,9 @@ textarea.fi{resize:vertical;min-height:80px;}
     <div class="tbtn on" onclick="goTab('dashboard',this)">📊 Dashboard</div>
     <div class="tbtn" onclick="goTab('ppcl',this)">🌡️ Condensadores</div>
     <div class="tbtn" onclick="goTab('piscina',this)">🏊 Piscinas</div>
-    <div class="tbtn" onclick="goTab('acs',this)">🚿 ACS</div>
+    <div class="tbtn" onclick="goTab('acs',this)">🚿 ACS Grifos</div>
+    <div class="tbtn" onclick="goTab('acsm',this)">📋 ACS Mensual</div>
+    <div class="tbtn" onclick="goTab('diariobox',this)">🚰 Diario Box</div>
     <div class="tbtn" onclick="goTab('potable',this)">💧 Potable</div>
     <div class="tbtn" onclick="goTab('checklist',this)">✅ Checklist</div>
     <div class="tbtn" onclick="goTab('incidencias',this)">🔧 Incidencias</div>
@@ -446,6 +476,7 @@ textarea.fi{resize:vertical;min-height:80px;}
   </div>
   <button id="fab" onclick="doSave()">💾</button>
   <div id="toast"></div>
+<div class="offline-badge" id="offlineBadge">📵 Sin conexión — datos guardados localmente</div>
   <div class="main">
     <!-- DASHBOARD -->
     <div class="tab on" id="tab-dashboard">
@@ -624,6 +655,65 @@ textarea.fi{resize:vertical;min-height:80px;}
       </div>
     </div>
     <!-- POTABLE -->
+    <!-- ACS MENSUAL CON 38 GRIFOS -->
+    <div class="tab" id="tab-acsm">
+      <div class="card">
+        <div class="card-head" onclick="tog(this)">
+          <div class="ci bl">📋</div>
+          <div><div class="ct">ACS — Control Mensual Grifos</div><div class="cs">Cloro · pH · Conservación · Temp caliente · Temp fría</div></div>
+          <span class="ctog">▼</span>
+        </div>
+        <div class="cbody on" style="padding:14px">
+          <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center">
+            <select class="dinp" id="acsmMes" onchange="renderACSMensual()" style="flex:1;max-width:160px"></select>
+            <input class="dinp" id="acsmYr" type="number" style="width:80px" onchange="renderACSMensual()">
+            <button class="btn bs bsm" onclick="renderACSMensual()">🔄</button>
+          </div>
+          <div style="font-size:9px;color:var(--text3);margin-bottom:8px">Técnico: <input class="dinp" id="acsmTec" placeholder="Nombre técnico" style="width:160px;font-size:11px" oninput="sv('__tecnico',this.value)"> DNI: <input class="dinp" id="acsmDNI" placeholder="12345678A" style="width:120px;font-size:11px;font-family:monospace" oninput="sv('__tecnicoDNI',this.value)"></div>
+          <div id="acsmCont" style="overflow-x:auto"></div>
+        </div>
+      </div>
+      <!-- DEPÓSITOS MENSUALES -->
+      <div class="card" style="margin-top:14px">
+        <div class="card-head" onclick="tog(this)">
+          <div class="ci tl">🗄️</div>
+          <div><div class="ct">Depósitos — Control Mensual Anual</div><div class="cs">Nº39 Contraincendios · Nº28 Box Lavado Isotermos</div></div>
+          <span class="ctog">▼</span>
+        </div>
+        <div class="cbody on" style="padding:14px;overflow-x:auto">
+          <div id="deposCont"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DIARIO AGUA FRÍA SANITARIA -->
+    <div class="tab" id="tab-diariobox">
+      <div class="card">
+        <div class="card-head" onclick="tog(this)">
+          <div class="ci bl">🚰</div>
+          <div><div class="ct">Agua Fría Sanitaria — Control Diario</div><div class="cs">Nº40 Depósito Aporte Box Lavado · Nº5 Lavabo Antecámara</div></div>
+          <span class="ctog">▼</span>
+        </div>
+        <div class="cbody on" style="padding:14px">
+          <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
+            <button class="btn bs bsm" onclick="afsPN(-1)">‹</button>
+            <span class="ylbl" id="afsDateLbl">—</span>
+            <button class="btn bs bsm" onclick="afsPN(1)">›</button>
+            <input type="date" class="dinp" id="afsDate" style="width:auto" onchange="renderAFS()">
+            <button class="btn bp bsm" onclick="afsHoy()">Hoy</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+            <div class="sc bl"><div class="sn" id="afsTot">0</div><div class="sl">REGISTROS</div></div>
+            <div class="sc gr"><div class="sn" id="afsOk">0</div><div class="sl">OK</div></div>
+            <div class="sc rd"><div class="sn" id="afsAlrt">0</div><div class="sl">ALERTAS</div></div>
+            <div class="sc am"><div class="sn" id="afsPct">0%</div><div class="sl">COMPLETADO</div></div>
+          </div>
+          <div style="font-size:9px;color:var(--text3);margin-bottom:8px">Técnico: <input class="dinp" id="afsTec" placeholder="Nombre técnico" style="width:160px;font-size:11px" oninput="sv('__tecnico',this.value)"> DNI: <input class="dinp" id="afsDNI" placeholder="12345678A" style="width:120px;font-size:11px;font-family:monospace" oninput="sv('__tecnicoDNI',this.value)"></div>
+          <div id="afsCont" style="overflow-x:auto"></div>
+        </div>
+      </div>
+    </div>
+
     <div class="tab" id="tab-potable">
       <div class="card">
         <div class="card-head" onclick="tog(this)">
@@ -754,6 +844,15 @@ textarea.fi{resize:vertical;min-height:80px;}
         </div>
         <button class="btn bp" style="width:100%" onclick="requestPushPermission()" id="btnPush">🔔 Activar notificaciones</button>
         <div id="pushMsg" style="font-size:10px;margin-top:6px;min-height:14px;color:var(--text3)"></div>
+      </div>
+      <!-- AUDITORÍA -->
+      <div class="cfgs">
+        <div class="cfgt">📋 AUDITORÍA DE ACCIONES</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:11px;color:var(--text2)">Últimas 50 acciones del sistema</div>
+          <button class="btn bs bsm" onclick="renderAuditSection()">🔄 Actualizar</button>
+        </div>
+        <div id="auditSection"><div class="skel" style="margin-bottom:6px"></div><div class="skel" style="margin-bottom:6px"></div><div class="skel"></div></div>
       </div>
       <!-- FIREBASE -->
       <div class="cfgs">
@@ -1635,12 +1734,6 @@ function setLogo(src){
 }
 function showApp(){
   document.getElementById('app').classList.add('on');
-  if(!gv('__conds')&&!gv('__piscs')&&!gv('__grifos')){
-    sv('__conds',JSON.stringify([{n:1,name:'Condensador Evap. Nº 1'},{n:2,name:'Condensador Evap. Nº 2'}]));
-    sv('__piscs',JSON.stringify([{id:'p1',name:'Piscina Principal',tipo:'piscina'},{id:'p2',name:'Piscina Infantil',tipo:'piscina'}]));
-    sv('__grifos',JSON.stringify([{n:1,ni:'G01',name:'Ducha vestuario hombres'},{n:2,ni:'G02',name:'Ducha vestuario mujeres'},{n:3,ni:'G03',name:'Grifo cocina'}]));
-    doSave();
-  }
   initApp();
 }
 // ═══ DATA / FIREBASE ════════════════════════════════
@@ -1695,7 +1788,7 @@ function initApp(){
   goTab('dashboard',document.querySelector('#bnav .nitem'));
   initLang();
 }
-function refreshAll(){renderCondList();renderPiscList();renderGrifoList();renderPPCL();renderPiscina();renderACS();renderPotable();renderDashboard();renderIncidencias();checkAlerts();}
+function refreshAll(){renderPPCL();renderPiscina();renderACS();renderPotable();renderDashboard();renderIncidencias();}
 function updateClock(){const el=document.getElementById('clk');if(el)el.textContent=new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
 // ═══ NAV ═════════════════════════════════════════════
 function goTab(id,el){
@@ -2161,196 +2254,84 @@ function saveInstalaciones(){
   sv('__conds',JSON.stringify(conds));sv('__piscs',JSON.stringify(piscs));sv('__grifos',JSON.stringify(grifos));
   doSave();toast(tr('t_inst_saved'));renderPPCL();renderPiscina();renderACS();
 }
-// ═══ PDF MEJORADO ═════════════════════════════════════
+// ═══ PDF REPORT ═════════════════════════════════════
 function genPDF(){
-  var c=co||{name:'AquaControl Pro',code:'—'};
-  var yr=parseInt(document.getElementById('ppclYr').value)||new Date().getFullYear();
-  var mo=ppclMo;var now=new Date();var days=new Date(yr,mo+1,0).getDate();
-  var conds=getConds();var piscs=getPiscs();var grifos=getGrifos();
-  var fKey=mk('firma',ds(now),'manana');
-  var fImg=gv(fKey+'__img');var fNom=gv(fKey+'__nom')||gv('__tecnico')||'—';
-  var fDNI=gv(fKey+'__dni')||gv('__tecnicoDNI')||'—';
-  var fFec=gv(fKey+'__fec')||now.toLocaleString('es-ES');
-  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;font-size:9px;color:#1a2332;padding:10mm;}h2{font-size:11px;font-weight:700;color:#0a1628;margin:10px 0 4px;padding:4px 8px;background:#f0f4f8;border-left:3px solid #2589c7;}h3{font-size:9px;font-weight:700;color:#2589c7;margin:5px 0 2px;}table{width:100%;border-collapse:collapse;margin-bottom:6px;font-size:8px;}th{background:#f0f4f8;padding:3px 5px;text-align:left;border:1px solid #e2e8f0;}td{padding:2px 5px;border:1px solid #e2e8f0;}tr:nth-child(even) td{background:#f7f9fc;}.hdr{background:#0a1628;color:#fff;padding:10px 14px;border-radius:6px;margin-bottom:12px;display:flex;justify-content:space-between;}.bad{color:#c0392b;font-weight:700;}.sello{background:rgba(26,122,74,.08);border:1px solid rgba(26,122,74,.2);border-radius:6px;padding:8px;margin:10px 0;text-align:center;font-size:9px;}.firma-sec{border:1px solid #e2e8f0;border-radius:6px;padding:10px;margin-top:8px;display:flex;gap:12px;align-items:center;}.firma-img{max-width:140px;border:1px solid #e2e8f0;border-radius:4px;}</style></head><body>';
-  html+='<div class="hdr"><div><div style="font-size:14px;font-weight:800">AquaControl Pro</div><div style="font-size:9px;opacity:.6">'+c.name+' - '+c.code+'</div></div><div style="text-align:right;font-size:9px;opacity:.8"><div>'+MOS[mo]+' '+yr+'</div><div>'+now.toLocaleString('es-ES')+'</div><div style="margin-top:3px">Tecnico: '+fNom+' - DNI: '+fDNI+'</div></div></div>';
-  // Condensadores
-  html+='<h2>Condensadores Evaporativos - '+MOS[mo]+' '+yr+'</h2>';
-  conds.forEach(function(cond){
-    html+='<h3>'+cond.name+'</h3><table><thead><tr><th>DIA</th><th>BIOCIDAD</th><th>TEMP</th><th>pH</th><th>TURBIDEZ</th></tr></thead><tbody>';
-    for(var d=1;d<=days;d++){
-      var b=gv(mk('ppcl',yr,mo,cond.n,d,'biocidad'));var t=gv(mk('ppcl',yr,mo,cond.n,d,'temperatura'));var p=gv(mk('ppcl',yr,mo,cond.n,d,'ph'));var turb=gv(mk('ppcl',yr,mo,cond.n,d,'turbidez'));
+  const c=co||{name:'AquaControl Pro',code:'—'};
+  const yr=parseInt(document.getElementById('ppclYr').value)||new Date().getFullYear();
+  const mo=ppclMo;const now=new Date();const days=new Date(yr,mo+1,0).getDate();
+  const conds=getConds();const piscs=getPiscs();const grifos=getGrifos();
+  const fKey=mk('firma',ds(now),'manana');
+  const fImg=gv(fKey+'__img');const fNom=gv(fKey+'__nom');const fFec=gv(fKey+'__fec');
+  let html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+tr('pdf_title')+' — '+c.name+' · '+MOS[mo]+' '+yr+'</title><style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;font-size:9px;color:#1a2332;padding:12mm;}h1{font-size:18px;font-weight:800;color:#0a1628;margin-bottom:4px;}h2{font-size:12px;font-weight:700;color:#0a1628;margin:12px 0 5px;padding-bottom:3px;border-bottom:2px solid #2589c7;}h3{font-size:10px;font-weight:700;color:#2589c7;margin:6px 0 3px;}table{width:100%;border-collapse:collapse;margin-bottom:8px;font-size:8px;}th{background:#f0f4f8;padding:4px 6px;text-align:left;font-weight:700;color:#4a5568;border:1px solid #e2e8f0;}td{padding:3px 6px;border:1px solid #e2e8f0;}tr:nth-child(even) td{background:#f7f9fc;}.hdr{background:#0a1628;color:#fff;padding:12px 16px;border-radius:8px;margin-bottom:14px;display:flex;justify-content:space-between;}.ok{color:#1a7a4a;font-weight:700}.bad{color:#c0392b;font-weight:700}.firma-sec{border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-top:12px;display:flex;gap:14px;align-items:center;}.firma-img{border:1px solid #e2e8f0;border-radius:6px;max-width:160px;}@media print{body{padding:6mm;}}</style></head><body>';
+  // Obtener técnico firmante para el encabezado
+  const tecnico = fNom || gv('__tecnico') || '—';
+  html+='<div class="hdr"><div><div style="font-size:16px;font-weight:800">💧 AquaControl Pro</div><div style="font-size:10px;opacity:.6">'+c.name+' · Código: '+c.code+'</div></div><div style="text-align:right;font-size:9px;opacity:.7"><div>Informe Oficial — '+MOS[mo]+' '+yr+'</div><div>'+now.toLocaleString('es-ES')+'</div><div style="margin-top:4px;background:rgba(255,255,255,0.15);border-radius:4px;padding:2px 8px">👤 Técnico: '+tecnico+'</div></div></div>';
+  // CONDENSADORES
+  html+='<h2>🌡️ '+tr('pdf_evap')+'</h2>';
+  conds.forEach(cond=>{
+    html+='<h3>'+cond.name+'</h3><table><thead><tr><th>'+tr('pdf_day')+'</th><th>'+tr('pdf_bioc')+'</th><th>'+tr('pdf_temp')+'</th><th>pH</th><th>'+tr('pdf_turb')+'</th><th>TÉCNICO</th></tr></thead><tbody>';
+    for(let d=1;d<=days;d++){
+      const b=gv(mk('ppcl',yr,mo,cond.n,d,'biocidad'));const t=gv(mk('ppcl',yr,mo,cond.n,d,'temperatura'));const p=gv(mk('ppcl',yr,mo,cond.n,d,'ph'));const turb=gv(mk('ppcl',yr,mo,cond.n,d,'turbidez'));
       if(!b&&!t&&!p&&!turb)continue;
-      var pc=parseFloat(p);
-      html+='<tr><td><b>'+d+'</b></td><td>'+(b||'—')+'</td><td>'+(t||'—')+'</td><td class="'+(p&&(pc<7||pc>8.5)?'bad':'')+'">'+(p||'—')+'</td><td>'+(turb||'—')+'</td></tr>';
+      const pc=parseFloat(p);const phcls=pc<7||pc>8.5?'bad':'ok';
+      const tec_d=gv(mk('ppcl',yr,mo,cond.n,d,'tecnico'))||tecnico;html+='<tr><td><b>'+d+'</b></td><td>'+(b||'—')+'</td><td>'+(t||'—')+'</td><td class="'+phcls+'">'+(p||'—')+'</td><td>'+(turb||'—')+'</td><td style="font-size:7px;color:#4a5568">'+tec_d+'</td></tr>';
     }
     html+='</tbody></table>';
   });
-  // Piscinas
-  var todayStr=ds(now);
-  html+='<h2>Piscinas - '+now.toLocaleDateString('es-ES')+'</h2>';
-  piscs.forEach(function(p){
-    html+='<h3>'+(p.tipo==='jacuzzi'?'Jacuzzi: ':'Piscina: ')+p.name+'</h3><table><thead><tr><th>SESION</th><th>CLORO</th><th>pH</th><th>TEMP</th><th>TURB</th><th>ALGAS</th></tr></thead><tbody>';
-    ['manana','tarde'].forEach(function(ses){
-      var cl=gv(mk('pisc',todayStr,ses,p.id,'cloro'));var ph=gv(mk('pisc',todayStr,ses,p.id,'ph'));var tm=gv(mk('pisc',todayStr,ses,p.id,'temp'));var tb=gv(mk('pisc',todayStr,ses,p.id,'turb'));var al=gv(mk('pisc',todayStr,ses,p.id,'algas'));
-      if(!cl&&!ph&&!tm&&!tb)return;
-      var phN=parseFloat(ph);var clN=parseFloat(cl);
-      html+='<tr><td>'+(ses==='manana'?'Manana':'Tarde')+'</td><td class="'+(cl&&(clN<0.5||clN>2)?'bad':'')+'">'+(cl||'—')+'</td><td class="'+(ph&&(phN<7.2||phN>7.8)?'bad':'')+'">'+(ph||'—')+'</td><td>'+(tm||'—')+'</td><td>'+(tb||'—')+'</td><td>'+(al||'—')+'</td></tr>';
+  // PISCINAS
+  html+='<h2>🏊 '+tr('pdf_pools')+'</h2>';
+  const todayStr=ds(now);
+  piscs.forEach(p=>{
+    html+='<h3>'+(p.tipo==='jacuzzi'?'🛁':'🏊')+' '+p.name+'</h3><table><thead><tr><th>'+tr('pdf_session')+'</th><th>'+tr('pdf_chlorine')+'</th><th>pH</th><th>'+tr('pdf_temp')+'</th><th>'+tr('cond_turb')+'</th><th>'+tr('pdf_algae')+'</th><th>TÉCNICO</th></tr></thead><tbody>';
+    ['manana','tarde'].forEach(ses=>{
+      const cl=gv(mk('pisc',todayStr,ses,p.id,'cloro'));const ph=gv(mk('pisc',todayStr,ses,p.id,'ph'));const tm=gv(mk('pisc',todayStr,ses,p.id,'temp'));const tb=gv(mk('pisc',todayStr,ses,p.id,'turb'));const al=gv(mk('pisc',todayStr,ses,p.id,'algas'));
+      const phcls=parseFloat(ph)<7.2||parseFloat(ph)>7.8?'bad':'ok';const clcls=parseFloat(cl)<0.5||parseFloat(cl)>2?'bad':'ok';
+      const tec_ses=gv(mk('pisc',todayStr,ses,p.id,'tecnico'))||tecnico;html+='<tr><td>'+(ses==='manana'?tr('pdf_morning'):tr('pdf_afternoon'))+'</td><td class="'+clcls+'">'+(cl||'—')+'</td><td class="'+phcls+'">'+(ph||'—')+'</td><td>'+(tm||'—')+'</td><td>'+(tb||'—')+'</td><td>'+(al||'—')+'</td><td style="font-size:7px;color:#4a5568">'+tec_ses+'</td></tr>';
     });
     html+='</tbody></table>';
   });
   // ACS
-  html+='<h2>ACS Grifos - Semana '+acsWk+'</h2><table><thead><tr><th>Nr</th><th>GRIFO</th><th>T.FRIA</th><th>T.CALIENTE</th><th>APERTURA</th></tr></thead><tbody>';
-  grifos.forEach(function(g){var tc=gv(mk('acs_s',acsWk,g.n,'tc'));var tcN=parseFloat(tc);html+='<tr><td>'+g.ni+'</td><td>'+g.name+'</td><td>'+(gv(mk('acs_s',acsWk,g.n,'tf'))||'—')+'</td><td class="'+(tc&&tcN<50?'bad':'')+'">'+(tc||'—')+'</td><td>'+(gv(mk('acs_s',acsWk,g.n,'ap'))||'—')+'</td></tr>';});
+  html+='<h2>🚿 '+tr('pdf_acs')+'</h2><table><thead><tr><th>Nº</th><th>GRIFO</th><th>'+tr('pdf_turb_af')+'</th><th>'+tr('pdf_turb_ac')+'</th><th>'+tr('pdf_apertura')+'</th><th>TÉCNICO</th></tr></thead><tbody>';
+  grifos.forEach(g=>{const tec_g=gv(mk('acs_s',acsWk,g.n,'tecnico'))||tecnico;html+='<tr><td><b>'+g.ni+'</b></td><td>'+g.name+'</td><td>'+(gv(mk('acs_s',acsWk,g.n,'tf'))||'—')+'</td><td>'+(gv(mk('acs_s',acsWk,g.n,'tc'))||'—')+'</td><td>'+(gv(mk('acs_s',acsWk,g.n,'ap'))||'—')+'</td><td style="font-size:7px;color:#4a5568">'+tec_g+'</td></tr>';});
   html+='</tbody></table>';
-  // Historial alertas
-  var ah=getAlertHist();
-  if(ah.length){html+='<h2>Historial de Alertas</h2><table><thead><tr><th>FECHA</th><th>ALERTA</th><th>TIPO</th></tr></thead><tbody>';ah.slice(0,20).forEach(function(a){html+='<tr><td style="font-size:7px">'+a.time+'</td><td>'+a.msg+'</td><td style="color:'+(a.type==='bad'?'#c0392b':'#c97b00')+'">'+(a.type==='bad'?'Critica':'Advertencia')+'</td></tr>';});html+='</tbody></table>';}
-  // Sello
-  html+='<div class="sello"><b>Supervision certificada por firma digital</b> - Tecnico: '+fNom+' - DNI: '+fDNI+'<br><span style="color:#8899aa">Documento generado por AquaControl Pro - RD 487/2022</span></div>';
-  // Firma
+  // AGUA POTABLE
+  html+='<h2>💧 '+tr('pdf_potable')+'</h2><table><thead><tr><th>'+tr('pot_point')+'</th><th>'+tr('pdf_cl_free')+'</th><th>pH</th><th>'+tr('pot_turb')+'</th><th>'+tr('pot_result')+'</th></tr></thead><tbody>';
+  PUNTOS.forEach(p=>{const b=mk('pot',potWk,p.n);html+='<tr><td>'+p.name+'</td><td>'+(gv(b+'__cl')||'—')+'</td><td>'+(gv(b+'__ph')||'—')+'</td><td>'+(gv(b+'__trb')||'—')+'</td><td>'+(gv(b+'__res')||'—')+'</td></tr>';});
+  html+='</tbody></table>';
+  // INCIDENCIAS
+  const abiertas=getIncs().filter(i=>i.status!=='cerrada');
+  if(abiertas.length){
+    html+='<h2>🔧 '+tr('pdf_inc_active')+'</h2><table><thead><tr><th>'+tr('pdf_prio')+'</th><th>'+tr('pdf_inc_title')+'</th><th>'+tr('pdf_ubic')+'</th><th>'+tr('pdf_status')+'</th><th>'+tr('pdf_date')+'</th></tr></thead><tbody>';
+    abiertas.forEach(i=>{html+='<tr><td>'+i.prio+'</td><td>'+i.titulo+'</td><td>'+(i.ubic||'—')+'</td><td>'+i.status+'</td><td>'+i.fecha+'</td></tr>';});
+    html+='</tbody></table>';
+  }
+  // FIRMA + FOTO TÉCNICO + ALERTAS HISTORIAL
+  html+='<h2>✍️ '+tr('pdf_firma')+'</h2>';
   html+='<div class="firma-sec">';
-  if(fImg){html+='<img src="'+fImg+'" class="firma-img"><div><div style="font-weight:700">'+fNom+'</div><div style="color:#4a5568">DNI: '+fDNI+'</div><div style="font-size:8px;color:#8899aa">'+fFec+'</div><div style="margin-top:6px;background:rgba(26,122,74,.08);padding:4px 8px;border-radius:4px;font-size:8px;color:#1a7a4a">Firma digital verificada</div></div>';}
-  else{html+='<div style="color:#8899aa">Sin firma registrada</div>';}
-  html+='</div></body></html>';
-  var w=window.open('','_blank');if(w){w.document.write(html);w.document.close();setTimeout(function(){w.print();},600);}
+  if(fImg){
+    html+='<img src="'+fImg+'" class="firma-img">';
+    html+='<div style="flex:1"><div style="font-size:12px;font-weight:700;margin-bottom:4px">👤 '+(fNom||'—')+'</div>';
+    html+='<div style="color:#8899aa;font-size:9px">📅 '+(fFec||'—')+'</div>';
+    html+='<div style="margin-top:6px;background:#f0f8ff;border-radius:6px;padding:6px 8px;font-size:9px;color:#2589c7;font-weight:700">✅ Supervisión certificada por firma digital</div></div>';
+  } else {
+    html+='<div style="color:#8899aa;font-style:italic">'+tr('pdf_no_firma')+'</div>';
+  }
+  html+='</div>';
+  // ALERTAS ACTIVAS EN EL PERIODO
+  try{
+    const h=JSON.parse(localStorage.getItem('__alertHist_'+(co?co.code:''))||'[]');
+    if(h.length>0){
+      html+='<h2>⚠️ Historial de alertas del periodo</h2>';
+      html+='<table><thead><tr><th>FECHA</th><th>ALERTA</th><th>TIPO</th></tr></thead><tbody>';
+      h.slice(0,20).forEach(a=>{html+='<tr><td style="font-size:8px;color:#8899aa">'+a.time+'</td><td>'+a.msg+'</td><td style="color:'+(a.t==='bad'?'#c0392b':'#c97b00')+'">'+( a.t==='bad'?'⛔ Crítica':'⚠️ Advertencia')+'</td></tr>';});
+      html+='</tbody></table>';
+    }
+  }catch(e){}
+  html+='<div style="margin-top:16px;text-align:center;font-size:7px;color:#b0bec5;border-top:1px solid #e2e8f0;padding-top:8px">AquaControl Pro · '+c.name+' · '+c.code+' · '+now.toLocaleString()+'</div>';
+  html+='</body></html>';
+  const w=window.open('','_blank');w.document.write(html);w.document.close();setTimeout(()=>w.print(),600);
   toast(tr('t_pdf'));
 }
-
-// ═══ AGUA FRIA SANITARIA (DIARIO) ═══════════════════
-// Puntos de control diario según el Excel
-var AFS_PUNTOS=[
-  {n:'40',name:'Deposito Aporte Box Lavado'},
-  {n:'5',name:'Lavabo Aseo Antecamara Congelado'}
-];
-function renderAFS(){
-  var date=document.getElementById('afsDate').value||ds(new Date());
-  var html='';var tot=0;var ok=0;var alrt=0;
-  html+='<div class="card"><div class="chd" onclick="tog(this)"><div class="ci bl">🚰</div><div><div class="ct">Control Diario Agua Fria Sanitaria</div><div class="cs">'+date+'</div></div><span class="ctog">▼</span></div>';
-  html+='<div class="cbody on" style="padding:14px;overflow-x:auto"><table class="dt" style="min-width:460px">';
-  html+='<thead><tr><th>Nr</th><th>PUNTO DE CONTROL</th><th class="tc">pH<br><small>6.5-9.5</small></th><th class="tc">CLORO<br><small>0.2-1 mg/L</small></th><th class="tc">TEMP<br><small>semanal</small></th><th class="tc">TECNICO</th></tr></thead><tbody>';
-  AFS_PUNTOS.forEach(function(p){
-    var kph=mk('afs',date,p.n,'ph');var kcl=mk('afs',date,p.n,'cloro');var ktmp=mk('afs',date,p.n,'temp');var ktec=mk('afs',date,p.n,'tec');
-    var ph=gv(kph);var cl=gv(kcl);var tmp=gv(ktmp);
-    if(ph||cl)tot++;
-    var phN=parseFloat(ph);var clN=parseFloat(cl);
-    var phBad=ph&&(phN<6.5||phN>9.5);var clBad=cl&&(clN<0.2||clN>1.0);
-    if(phBad||clBad)alrt++;else if(ph||cl)ok++;
-    var tec=gv(ktec)||gv('__tecnico')||'';
-    html+='<tr>';
-    html+='<td><b>'+p.n+'</b></td><td style="font-size:11px">'+p.name+'</td>';
-    html+='<td class="tc"><input type="text" class="ci2'+(phBad?' bad':ph?' ok':'')+'" placeholder="pH" value="'+ph+'" inputmode="decimal" data-k="'+kph+'" data-f="ph" onchange="sv(this.dataset.k,this.value);colorI(this,this.dataset.f);doSave();" oninput="colorI(this,this.dataset.f)"></td>';
-    html+='<td class="tc"><input type="text" class="ci2'+(clBad?' bad':cl?' ok':'')+'" placeholder="mg/L" value="'+cl+'" inputmode="decimal" data-k="'+kcl+'" data-f="cloro" onchange="sv(this.dataset.k,this.value);colorI(this,this.dataset.f);doSave();" oninput="colorI(this,this.dataset.f)"></td>';
-    html+='<td class="tc"><input type="text" class="ci2" placeholder="°C" value="'+tmp+'" inputmode="decimal" data-k="'+ktmp+'" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
-    html+='<td class="tc"><input type="text" class="ci2" placeholder="Nombre" value="'+tec+'" data-k="'+ktec+'" onchange="sv(this.dataset.k,this.value);doSave()" style="font-size:10px"></td>';
-    html+='</tr>';
-  });
-  html+='</tbody></table>';
-  // Campo firma/observaciones
-  var obsK=mk('afs',date,'obs');
-  html+='<div style="margin-top:10px"><label class="fl">Observaciones del dia</label><input class="fi" style="font-size:12px" placeholder="Incidencias, tratamientos, anomalias..." value="'+gv(obsK).replace(/"/g,'&quot;')+'" data-k="'+obsK+'" onchange="sv(this.dataset.k,this.value);doSave()"></div>';
-  html+='</div></div>';
-  document.getElementById('afsCont').innerHTML=html;
-  document.getElementById('afsTot').textContent=tot;
-  document.getElementById('afsOk').textContent=ok;
-  document.getElementById('afsAlrt').textContent=alrt;
-}
-
-// ═══ CONTROL MENSUAL ACS ══════════════════════════════
-// Grifos para control mensual (rotativos por mes)
-var ACS_MENSUAL_GRIFOS=[
-  {n:'1',ni:'1',name:'Fuente Agua Calle 17',cod:'46031'},
-  {n:'2',ni:'2',name:'Grifo Departamento Calidad (1)',cod:'46031'},
-  {n:'3',ni:'3',name:'Grifo Departamento Calidad (2)',cod:'46031'},
-  {n:'4',ni:'4',name:'Grifo Departamento Calidad (3)',cod:'46031'},
-  {n:'5',ni:'5',name:'Grifo Aseo Camara',cod:'46035'},
-  {n:'6',ni:'6',name:'Grifo Fuente Transportes',cod:'46035'},
-  {n:'7',ni:'7',name:'Grifo Pila Sala de Bateria',cod:'46035'},
-  {n:'8',ni:'8',name:'Grifo Aseo WC Seco',cod:'46035'},
-  {n:'9',ni:'9',name:'Grifo Vestuarios Hombres (1)',cod:'46041'},
-  {n:'10',ni:'10',name:'Grifo Vestuarios Hombres (2)',cod:'46041'},
-  {n:'11',ni:'11',name:'Grifo Vestuarios Hombres (3)',cod:'46041'},
-  {n:'12',ni:'12',name:'Grifo Vestuarios Hombres (4)',cod:'46041'},
-  {n:'13',ni:'13',name:'Grifo Aseo WC Transportes',cod:'46048'},
-  {n:'14A',ni:'14A',name:'Grifo Aseo Femenino Oficina 1',cod:'46048'},
-  {n:'14B',ni:'14B',name:'Grifo Aseo Femenino Oficina 2',cod:'46048'},
-  {n:'14C',ni:'14C',name:'Grifo Aseo Femenino Oficina 3',cod:'46048'},
-  {n:'15A',ni:'15A',name:'Grifo Aseo Masculino Oficina 1',cod:'46055'},
-  {n:'15B',ni:'15B',name:'Grifo Aseo Masculino Oficina 2',cod:'46055'},
-  {n:'15C',ni:'15C',name:'Grifo Aseo Masculino Oficina 3',cod:'46055'},
-  {n:'16',ni:'16',name:'Grifos Vestuarios Mujeres (1)',cod:'46055'},
-  {n:'17',ni:'17',name:'Grifos Vestuarios Mujeres (2)',cod:'46062'},
-  {n:'18',ni:'18',name:'Grifos Vestuarios Mujeres (3)',cod:'46062'},
-  {n:'19',ni:'19',name:'Grifo Patio Zona Cuba Palet',cod:'46062'},
-  {n:'20',ni:'20',name:'Grifo Fuente Muelle Seco',cod:'46062'},
-  {n:'21',ni:'21',name:'Grifo Comedor Oficina',cod:'46069'},
-  {n:'22',ni:'22',name:'Grifo Comedor Mozo',cod:'46069'},
-  {n:'24',ni:'24',name:'Grifo Fuente Muelle Fruta',cod:'46069'},
-  {n:'26',ni:'26',name:'Grifo Armario Placas',cod:'46069'},
-  {n:'28',ni:'28',name:'Grifo Hidrolimpiadora',cod:'46076'},
-  {n:'29',ni:'29',name:'Grifo Cuba Organica',cod:'46076'},
-  {n:'30',ni:'30',name:'Ducha Vestuarios Masculino (1)',cod:'46076'},
-  {n:'31',ni:'31',name:'Ducha Vestuarios Masculino (2)',cod:'46076'},
-  {n:'32',ni:'32',name:'Ducha Vestuarios Masculino (3)',cod:'46083'},
-  {n:'33',ni:'33',name:'Ducha Vestuarios Masculino (4)',cod:'46083'},
-  {n:'34',ni:'34',name:'Ducha Vestuarios Masculino (5)',cod:'46083'},
-  {n:'35',ni:'35',name:'Ducha Vestuarios Masculino (6)',cod:'46083'},
-  {n:'36',ni:'36',name:'Ducha Vestuarios Masculino (7)',cod:'46090'},
-  {n:'37',ni:'37',name:'Ducha Vestuarios Masculino (8)',cod:'46090'},
-  {n:'38',ni:'38',name:'Ducha Vestuarios Femenino',cod:'46090'},
-];
-var ACS_DEPOSITOS=[
-  {n:'39',name:'Deposito principal'},
-  {n:'28D',name:'Box Lavado de Isotermos'}
-];
-var acsMensualMo=new Date().getMonth();
-var acsMensualYr2=new Date().getFullYear();
-
-function initACSMensual(){
-  var sel=document.getElementById('acsMensualMes');
-  if(sel&&!sel.options.length){MOS.forEach(function(m,i){var o=document.createElement('option');o.value=i;o.textContent=m;sel.appendChild(o);});sel.value=acsMensualMo;}
-  var yr=document.getElementById('acsMensualYr');if(yr)yr.value=acsMensualYr2;
-}
-function renderACSMensual(){
-  var selMo=document.getElementById('acsMensualMes');
-  var selYr=document.getElementById('acsMensualYr');
-  if(selMo)acsMensualMo=parseInt(selMo.value);
-  if(selYr)acsMensualYr2=parseInt(selYr.value)||new Date().getFullYear();
-  var mo=acsMensualMo;var yr=acsMensualYr2;
-  var mesKey=yr+'_'+String(mo+1).padStart(2,'0');
-  var html='<div style="overflow-x:auto"><table class="dt" style="min-width:600px">';
-  html+='<thead><tr><th>Nr</th><th>Cod.</th><th>GRIFO</th><th class="tc">CLORO<br><small>mg/L</small></th><th class="tc">pH</th><th class="tc">CONSERVACION</th><th class="tc">T.CALIENTE<br><small>°C ≥50</small></th><th class="tc">T.FRIA<br><small>°C</small></th></tr></thead><tbody>';
-  ACS_MENSUAL_GRIFOS.forEach(function(g){
-    var base=mk('acsm',mesKey,g.n);
-    var cl=gv(base+'_cl');var ph=gv(base+'_ph');var cons=gv(base+'_cons');var tc=gv(base+'_tc');var tf=gv(base+'_tf');
-    var tcN=parseFloat(tc);var tcBad=tc&&tcN<50;
-    html+='<tr>';
-    html+='<td><b>'+g.ni+'</b></td><td style="font-size:9px;color:var(--text3)">'+g.cod+'</td><td style="font-size:11px">'+g.name+'</td>';
-    html+='<td class="tc"><input type="text" class="ci2" placeholder="" value="'+cl+'" inputmode="decimal" data-k="'+base+'_cl" data-f="cloro" onchange="sv(this.dataset.k,this.value);colorI(this,this.dataset.f);doSave();" oninput="colorI(this,this.dataset.f)"></td>';
-    html+='<td class="tc"><input type="text" class="ci2" placeholder="" value="'+ph+'" inputmode="decimal" data-k="'+base+'_ph" data-f="ph" onchange="sv(this.dataset.k,this.value);colorI(this,this.dataset.f);doSave();" oninput="colorI(this,this.dataset.f)"></td>';
-    html+='<td class="tc"><select class="ci2" data-k="'+base+'_cons" onchange="sv(this.dataset.k,this.value);doSave()"><option value="">—</option><option value="OK"'+(cons==='OK'?' selected':'')+'>OK</option><option value="Revisar"'+(cons==='Revisar'?' selected':'')+'>Revisar</option><option value="Limpieza"'+(cons==='Limpieza'?' selected':'')+'>Limpieza</option></select></td>';
-    html+='<td class="tc"><input type="text" class="ci2'+(tcBad?' bad':tc?' ok':'')+'" placeholder="°C" value="'+tc+'" inputmode="decimal" data-k="'+base+'_tc" data-f="temperatura" onchange="sv(this.dataset.k,this.value);colorI(this,this.dataset.f);doSave();" oninput="colorI(this,this.dataset.f)"></td>';
-    html+='<td class="tc"><input type="text" class="ci2" placeholder="°C" value="'+tf+'" inputmode="decimal" data-k="'+base+'_tf" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
-    html+='</tr>';
-  });
-  html+='</tbody></table></div>';
-  document.getElementById('acsMensualCont').innerHTML=html;
-  // Depositos
-  var dHtml='<div style="overflow-x:auto"><table class="dt"><thead><tr><th>Nr</th><th>DEPOSITO</th><th class="tc">CLORO</th><th class="tc">pH</th><th class="tc">TEMP</th></tr></thead><tbody>';
-  ACS_DEPOSITOS.forEach(function(d){
-    var base=mk('acsd',mesKey,d.n);
-    var cl=gv(base+'_cl');var ph=gv(base+'_ph');var tmp=gv(base+'_tmp');
-    dHtml+='<tr><td><b>'+d.n+'</b></td><td style="font-size:11px">'+d.name+'</td>';
-    dHtml+='<td class="tc"><input type="text" class="ci2" placeholder="" value="'+cl+'" inputmode="decimal" data-k="'+base+'_cl" data-f="cloro" onchange="sv(this.dataset.k,this.value);colorI(this,this.dataset.f);doSave();" oninput="colorI(this,this.dataset.f)"></td>';
-    dHtml+='<td class="tc"><input type="text" class="ci2" placeholder="" value="'+ph+'" inputmode="decimal" data-k="'+base+'_ph" data-f="ph" onchange="sv(this.dataset.k,this.value);colorI(this,this.dataset.f);doSave();" oninput="colorI(this,this.dataset.f)"></td>';
-    dHtml+='<td class="tc"><input type="text" class="ci2" placeholder="°C" value="'+tmp+'" inputmode="decimal" data-k="'+base+'_tmp" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
-    dHtml+='</tr>';
-  });
-  dHtml+='</tbody></table></div>';
-  document.getElementById('deposiCont').innerHTML=dHtml;
-}
-function renderDepositos(){renderACSMensual();}
-
-
 // ═══ EXPORT ═════════════════════════════════════════
 function exportJSON(){
   const b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
@@ -2361,376 +2342,183 @@ function importJSON(){
   inp.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{if(!confirm(tr('confirm_import')))return;data={...JSON.parse(ev.target.result),__ts:Date.now()};doSave();refreshAll();toast(tr('t_imported'));}catch(e){toast(tr('t_import_err'));}};r.readAsText(f);};
   inp.click();
 }
-// ═══ EXCEL COMPLETO 6 HOJAS - MEJORADO ══════════════
 function exportExcel(){
-  if(typeof XLSX==='undefined'){toast('XLSX no disponible - verifica conexion');return;}
-  var wb=XLSX.utils.book_new();
-  var yr=parseInt(document.getElementById('ppclYr').value)||new Date().getFullYear();
-  var conds=getConds();var piscs=getPiscs();var grifos=getGrifos();
-  var now=new Date();
-  var empresa=co?co.name:'AquaControl Pro';var codigo=co?co.code:'—';
-  var tec=gv('__tecnico')||'Sin configurar';
-  var dni=gv('__tecnicoDNI')||'Sin configurar';
-  var fKey=mk('firma',ds(now),'manana');
-  var fNom=gv(fKey+'__nom')||tec;
-  var fDNI=gv(fKey+'__dni')||dni;
-  var fFec=gv(fKey+'__fec')||now.toLocaleString('es-ES');
-  var days=new Date(yr,ppclMo+1,0).getDate();
-  var td=ds(now);
+  if(typeof XLSX==='undefined'){toast('❌ XLSX no disponible. Verifica conexión a internet.');return;}
+  const wb=XLSX.utils.book_new();
+  const yr=parseInt(document.getElementById('ppclYr').value)||new Date().getFullYear();
+  const conds=getConds();const piscs=getPiscs();const grifos=getGrifos();
+  const days=new Date(yr,ppclMo+1,0).getDate();
+  const now=new Date();
+  const empresa=co?co.name:'AquaControl Pro';
+  const codigo=co?co.code:'—';
+  // Técnico firmante
+  const fKey=mk('firma',ds(now),'manana');
+  const fNom=gv(fKey+'__nom')||gv('__tecnico')||'—';
+  const fFec=gv(fKey+'__fec')||now.toLocaleString('es-ES');
+  const fImg=gv(fKey+'__img')||'';
 
-  // ── HOJA 1: RESUMEN ──────────────────────────────────
-  var wsR=XLSX.utils.book_new();
-  var resData=[
-    ['INFORME OFICIAL DE CONTROL SANITARIO — AQUACONTROL PRO','','',''],
-    ['','','',''],
-    ['DATOS DE LA EMPRESA','','',''],
-    ['Empresa',empresa,'Codigo de acceso',codigo],
-    ['Mes / Año',MOS[ppclMo]+' '+yr,'Fecha generacion',now.toLocaleString('es-ES')],
-    ['','','',''],
-    ['DATOS DEL TECNICO RESPONSABLE','','',''],
-    ['Nombre del tecnico',fNom,'',''],
-    ['DNI / N colegiado',fDNI,'',''],
-    ['Fecha de firma',fFec,'',''],
-    ['Estado firma','Firma digital registrada','',''],
+  // ── HOJA 1: RESUMEN ──────────────────────────────────────────
+  const resRows=[
+    ['INFORME OFICIAL — AQUACONTROL PRO','','',''],
+    ['Empresa',empresa,'Código',codigo],
+    ['Mes / Año',MOS[ppclMo]+' '+yr,'Generado',now.toLocaleString('es-ES')],
+    ['Técnico responsable',fNom,'Fecha firma',fFec],
     ['','','',''],
     ['RESUMEN DE INSTALACIONES','','',''],
-    ['Condensadores evaporativos',conds.length,'',''],
-    ['Piscinas y jacuzzis',piscs.length,'',''],
+    ['Condensadores',conds.length,'',''],
+    ['Piscinas/Jacuzzis',piscs.length,'',''],
     ['Grifos ACS',grifos.length,'',''],
-    ['Puntos agua potable',3,'',''],
+    ['Incidencias abiertas',getIncs().filter(i=>i.status!=='cerrada').length,'',''],
     ['','','',''],
-    ['RESUMEN DE REGISTROS MES ACTUAL','','',''],
+    ['FIRMA DIGITAL','✅ Incluida — '+fNom,'Fecha',''+fFec],
+    ['','Documento generado automáticamente por AquaControl Pro','',''],
   ];
-  // Contar registros reales de condensadores
-  var totReg=0;var totFill=0;
-  conds.forEach(function(c){
-    for(var d=1;d<=days;d++){
-      ['biocidad','temperatura','ph','turbidez'].forEach(function(f){
-        totReg++;if(gv(mk('ppcl',yr,ppclMo,c.n,d,f)))totFill++;
-      });
-    }
-  });
-  resData.push(['Registros condensadores realizados',totFill,'de un total de',totReg]);
-  resData.push(['Porcentaje completado',totReg>0?Math.round(totFill/totReg*100)+'%':'0%','','']);
-  resData.push(['','','','']);
-  resData.push(['INCIDENCIAS','','','']);
-  var incs=getIncs();
-  resData.push(['Total incidencias',incs.length,'','']);
-  resData.push(['Incidencias abiertas',incs.filter(function(i){return i.status!=='cerrada';}).length,'','']);
-  resData.push(['Incidencias cerradas',incs.filter(function(i){return i.status==='cerrada';}).length,'','']);
-  resData.push(['','','','']);
-  resData.push(['ALERTAS','','','']);
-  var ah=getAlertHist();
-  resData.push(['Total alertas registradas',ah.length,'','']);
-  resData.push(['Alertas criticas',ah.filter(function(a){return a.type==='bad';}).length,'','']);
-  resData.push(['Alertas advertencia',ah.filter(function(a){return a.type==='warn';}).length,'','']);
-  resData.push(['','','','']);
-  resData.push(['CERTIFICACION','Supervision certificada por firma digital','','']);
-  resData.push(['Normativa aplicable','Real Decreto 487/2022 - Control y prevencion de la legionelosis','','']);
-  var ws1=XLSX.utils.aoa_to_sheet(resData);
-  ws1['!cols']=[{wch:35},{wch:40},{wch:25},{wch:35}];
-  XLSX.utils.book_append_sheet(wb,ws1,'Resumen');
+  const wsRes=XLSX.utils.aoa_to_sheet(resRows);
+  wsRes['!cols']=[{wch:28},{wch:35},{wch:22},{wch:35}];
+  wsRes['!merges']=[{s:{r:0,c:0},e:{r:0,c:3}}];
+  // Estilos básicos en celda A1
+  if(wsRes['A1']) wsRes['A1'].s={font:{bold:true,sz:14},fill:{fgColor:{rgb:'0a1628'}},alignment:{horizontal:'center'}};
+  XLSX.utils.book_append_sheet(wb,wsRes,'Resumen');
 
-  // ── HOJA 2: CONDENSADORES ─────────────────────────────
-  var cH=['DIA','FECHA DIA'];
-  conds.forEach(function(c){
-    cH.push(c.name+' Biocidad(mg/L)');
-    cH.push(c.name+' Temperatura(C)');
-    cH.push(c.name+' pH');
-    cH.push(c.name+' Turbidez(NTU)');
+  // ── HOJA 2: CONDENSADORES EVAPORATIVOS ───────────────────────
+  const condHeader=['DÍA','FECHA'];
+  conds.forEach(c=>{
+    condHeader.push(c.name+' — Biocidad (mg/L)');
+    condHeader.push(c.name+' — Temperatura (°C)');
+    condHeader.push(c.name+' — pH');
+    condHeader.push(c.name+' — Turbidez (NTU)');
+    condHeader.push(c.name+' — Técnico');
   });
-  cH.push('TECNICO RESPONSABLE','DNI','OBSERVACIONES');
-  var cRows=[
-    ['REGISTRO MENSUAL CONDENSADORES EVAPORATIVOS - '+MOS[ppclMo].toUpperCase()+' '+yr],
-    ['Empresa: '+empresa+' | Tecnico: '+fNom+' | DNI: '+fDNI],
-    ['Normativa: RD 487/2022 | Rango pH: 7.0-8.5 | Temp maxima: 37C | Turbidez maxima: 5 NTU'],
+  const condRows=[
+    ['CONDENSADORES EVAPORATIVOS — '+MOS[ppclMo].toUpperCase()+' '+yr],
+    ['Empresa: '+empresa+' · Código: '+codigo+' · Técnico: '+fNom],
     [],
-    cH
+    condHeader
   ];
-  var hasData=false;
-  for(var d=1;d<=days;d++){
-    var fecha=new Date(yr,ppclMo,d).toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
-    var row=[d,fecha];
-    var rowHasData=false;
-    conds.forEach(function(c){
-      var bio=gv(mk('ppcl',yr,ppclMo,c.n,d,'biocidad'));
-      var tmp=gv(mk('ppcl',yr,ppclMo,c.n,d,'temperatura'));
-      var ph=gv(mk('ppcl',yr,ppclMo,c.n,d,'ph'));
-      var trb=gv(mk('ppcl',yr,ppclMo,c.n,d,'turbidez'));
-      if(bio||tmp||ph||trb)rowHasData=true;
-      row.push(bio?parseFloat(bio):'');
-      row.push(tmp?parseFloat(tmp):'');
-      row.push(ph?parseFloat(ph):'');
-      row.push(trb?parseFloat(trb):'');
+  for(let d=1;d<=days;d++){
+    const fecha=new Date(yr,ppclMo,d).toLocaleDateString('es-ES',{weekday:'short',day:'2-digit',month:'2-digit'});
+    const row=[d,fecha];
+    let hasData=false;
+    conds.forEach(c=>{
+      const bio=gv(mk('ppcl',yr,ppclMo,c.n,d,'biocidad'));
+      const tmp=gv(mk('ppcl',yr,ppclMo,c.n,d,'temperatura'));
+      const ph=gv(mk('ppcl',yr,ppclMo,c.n,d,'ph'));
+      const trb=gv(mk('ppcl',yr,ppclMo,c.n,d,'turbidez'));
+      const tec=gv(mk('ppcl',yr,ppclMo,c.n,d,'tecnico'))||fNom;
+      if(bio||tmp||ph||trb)hasData=true;
+      row.push(bio?parseFloat(bio):'',(tmp?parseFloat(tmp):''),(ph?parseFloat(ph):''),(trb?parseFloat(trb):''),bio||tmp||ph||trb?tec:'');
     });
-    // Tecnico del dia (por el dia de firma o el tecnico global)
-    var tecDia=gv(mk('ppcl',yr,ppclMo,conds[0]?conds[0].n:1,d,'tecnico'))||fNom;
-    var dniDia=gv(mk('ppcl',yr,ppclMo,conds[0]?conds[0].n:1,d,'tecnico_dni'))||fDNI;
-    var obs=gv(mk('ppcl',yr,ppclMo,conds[0]?conds[0].n:1,d,'obs'))||'';
-    row.push(tecDia,dniDia,obs);
-    cRows.push(row);
-    if(rowHasData)hasData=true;
+    condRows.push(row);
   }
-  cRows.push([]);
-  cRows.push(['TOTALES Y ESTADISTICAS','','','']);
-  // Calcular promedios por condensador
-  conds.forEach(function(c){
-    var phVals=[];var tmpVals=[];var bioVals=[];var trbVals=[];
-    for(var d=1;d<=days;d++){
-      var ph=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,'ph')));
-      var tmp=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,'temperatura')));
-      var bio=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,'biocidad')));
-      var trb=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,'turbidez')));
-      if(!isNaN(ph)&&ph>0)phVals.push(ph);
-      if(!isNaN(tmp)&&tmp>0)tmpVals.push(tmp);
-      if(!isNaN(bio)&&bio>0)bioVals.push(bio);
-      if(!isNaN(trb)&&trb>0)trbVals.push(trb);
-    }
-    var avg=function(arr){return arr.length?Math.round(arr.reduce(function(a,b){return a+b;},0)/arr.length*100)/100:'-';};
-    cRows.push([c.name+' - pH promedio',avg(phVals),'pH fuera de rango (7-8.5)',phVals.filter(function(v){return v<7||v>8.5;}).length]);
-    cRows.push([c.name+' - Temp promedio (C)',avg(tmpVals),'Temp >37C (alertas)',tmpVals.filter(function(v){return v>37;}).length]);
-    cRows.push([c.name+' - Biocidad promedio',avg(bioVals),'','']);
-    cRows.push([c.name+' - Turbidez promedio',avg(trbVals),'Turbidez >5 NTU (alertas)',trbVals.filter(function(v){return v>5;}).length]);
-  });
-  cRows.push([]);
-  cRows.push(['FIRMA DEL TECNICO RESPONSABLE','','','']);
-  cRows.push(['Nombre',fNom,'DNI',fDNI]);
-  cRows.push(['Fecha firma',fFec,'','']);
-  cRows.push(['Certificacion','Documento oficial - Cumple RD 487/2022','','']);
-  var ws2=XLSX.utils.aoa_to_sheet(cRows);
-  ws2['!cols']=[{wch:6},{wch:28}].concat(conds.reduce(function(a){return a.concat([{wch:22},{wch:16},{wch:10},{wch:18}]);},[])).concat([{wch:28},{wch:16},{wch:30}]);
-  XLSX.utils.book_append_sheet(wb,ws2,'Condensadores');
+  // Fila de firma al final
+  condRows.push([]);
+  condRows.push(['TÉCNICO RESPONSABLE',fNom,'FECHA FIRMA',fFec,'✅ Firma digital registrada en sistema']);
+  const wsCond=XLSX.utils.aoa_to_sheet(condRows);
+  wsCond['!cols']=[{wch:6},{wch:14},...conds.flatMap(()=>[{wch:26},{wch:20},{wch:10},{wch:20},{wch:22}])];
+  XLSX.utils.book_append_sheet(wb,wsCond,'Condensadores');
 
-  // ── HOJA 3: PISCINAS ─────────────────────────────────
-  var pRows=[
-    ['REGISTRO DE PISCINAS Y JACUZZIS - '+now.toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'})],
-    ['Empresa: '+empresa+' | Tecnico: '+fNom+' | DNI: '+fDNI],
-    ['Rangos: Cloro 0.5-2.0 mg/L | pH 7.2-7.8 | Temp 24-40 C | Turbidez <2 NTU'],
+  // ── HOJA 3: PISCINAS ─────────────────────────────────────────
+  const piscRows=[
+    ['PISCINAS Y JACUZZIS — '+now.toLocaleDateString('es-ES')],
+    ['Empresa: '+empresa+' · Técnico: '+fNom],
     [],
-    ['PISCINA','SESION','CLORO LIBRE(mg/L)','CLORO COMB.(mg/L)','pH','TEMP(C)','TURBIDEZ(NTU)','ALCALINIDAD(mg/L)','AFORO','ALGAS','OBSERVACIONES','TECNICO','DNI','ESTADO']
+    ['PISCINA','SESIÓN','CLORO LIBRE (mg/L)','pH','TEMPERATURA (°C)','TURBIDEZ (NTU)','ALGAS','TÉCNICO','ESTADO']
   ];
-  var pStats={};
-  piscs.forEach(function(p){
-    pStats[p.id]={clOk:0,clBad:0,phOk:0,phBad:0};
-    ['manana','tarde'].forEach(function(ses){
-      var cl=gv(mk('pisc',td,ses,p.id,'cloro'));
-      var clc=gv(mk('pisc',td,ses,p.id,'cloro_c'));
-      var ph=gv(mk('pisc',td,ses,p.id,'ph'));
-      var tmp=gv(mk('pisc',td,ses,p.id,'temp'));
-      var trb=gv(mk('pisc',td,ses,p.id,'turb'));
-      var alc=gv(mk('pisc',td,ses,p.id,'alc'));
-      var aforo=gv(mk('pisc',td,ses,p.id,'aforo'));
-      var algas=gv(mk('pisc',td,ses,p.id,'algas'));
-      var obs=gv(mk('pisc',td,ses,p.id,'obs'));
-      var clN=parseFloat(cl);var phN=parseFloat(ph);
-      var clOk=cl&&clN>=0.5&&clN<=2;var phOk=ph&&phN>=7.2&&phN<=7.8;
-      var estado='';
-      if(cl||ph){
-        if(!clOk&&cl)estado='CLORO FUERA RANGO';
-        else if(!phOk&&ph)estado='pH FUERA RANGO';
-        else if(clOk&&phOk)estado='CORRECTO';
-      }
-      pRows.push([
+  const todayStr=ds(now);
+  piscs.forEach(p=>{
+    ['manana','tarde'].forEach(ses=>{
+      const cl=gv(mk('pisc',todayStr,ses,p.id,'cloro'));
+      const ph=gv(mk('pisc',todayStr,ses,p.id,'ph'));
+      const tm=gv(mk('pisc',todayStr,ses,p.id,'temp'));
+      const tb=gv(mk('pisc',todayStr,ses,p.id,'turb'));
+      const al=gv(mk('pisc',todayStr,ses,p.id,'algas'));
+      const tec=gv(mk('pisc',todayStr,ses,p.id,'tecnico'))||fNom;
+      const clV=parseFloat(cl);const phV=parseFloat(ph);
+      const estado=(clV&&(clV<0.5||clV>2))||(phV&&(phV<7.2||phV>7.8))?'⚠️ FUERA RANGO':'✅ OK';
+      piscRows.push([
         (p.tipo==='jacuzzi'?'Jacuzzi: ':'Piscina: ')+p.name,
-        ses==='manana'?'Manana (apertura)':'Tarde (cierre)',
-        cl?parseFloat(cl):'',clc?parseFloat(clc):'',
-        ph?parseFloat(ph):'',tmp?parseFloat(tmp):'',
-        trb?parseFloat(trb):'',alc?parseFloat(alc):'',
-        aforo||'',algas||'',obs||'',fNom,fDNI,estado
+        ses==='manana'?'☀️ Mañana':'🌙 Tarde',
+        cl?parseFloat(cl):'', ph?parseFloat(ph):'',
+        tm?parseFloat(tm):'', tb?parseFloat(tb):'',
+        al||'', cl||ph||tm?tec:'', cl||ph||tm?estado:''
       ]);
     });
   });
-  pRows.push([]);
-  pRows.push(['FIRMA DEL TECNICO','','','']);
-  pRows.push(['Nombre',fNom,'DNI',fDNI]);
-  pRows.push(['Fecha',fFec,'Certificacion','Documento oficial RD 487/2022']);
-  var ws3=XLSX.utils.aoa_to_sheet(pRows);
-  ws3['!cols']=[{wch:28},{wch:20},{wch:18},{wch:18},{wch:10},{wch:12},{wch:16},{wch:18},{wch:10},{wch:12},{wch:28},{wch:26},{wch:16},{wch:22}];
-  XLSX.utils.book_append_sheet(wb,ws3,'Piscinas');
+  piscRows.push([]);
+  piscRows.push(['TÉCNICO RESPONSABLE',fNom,'FECHA',fFec,'✅ Firma digital en sistema']);
+  const wsPisc=XLSX.utils.aoa_to_sheet(piscRows);
+  wsPisc['!cols']=[{wch:28},{wch:14},{wch:20},{wch:10},{wch:20},{wch:20},{wch:10},{wch:24},{wch:18}];
+  XLSX.utils.book_append_sheet(wb,wsPisc,'Piscinas');
 
-  // ── HOJA 4: ACS GRIFOS ───────────────────────────────
-  var aRows=[
-    ['REGISTRO ACS - AGUA CALIENTE SANITARIA - Semana '+acsWk],
-    ['Empresa: '+empresa+' | Tecnico: '+fNom+' | DNI: '+fDNI],
-    ['Normativa: T. caliente >= 50C | T. fria <= 20C en acumulador'],
+  // ── HOJA 4: ACS GRIFOS ───────────────────────────────────────
+  const acsRows=[
+    ['AGUA CALIENTE SANITARIA (ACS) — Semana '+acsWk],
+    ['Empresa: '+empresa+' · Técnico: '+fNom],
     [],
-    ['Nr','GRIFO / PUNTO DE CONTROL','T. FRIA (C)','T. CALIENTE (C)','APERTURA/ESTADO','RESULTADO','TECNICO RESPONSABLE','DNI','OBSERVACIONES']
+    ['Nº','GRIFO / PUNTO','TEMP. FRÍA (°C)','TEMP. CALIENTE (°C)','APERTURA / OBSERVACIONES','TÉCNICO','ESTADO']
   ];
-  grifos.forEach(function(g){
-    var tf=gv(mk('acs_s',acsWk,g.n,'tf'));
-    var tc=gv(mk('acs_s',acsWk,g.n,'tc'));
-    var ap=gv(mk('acs_s',acsWk,g.n,'ap'));
-    var obs=gv(mk('acs_s',acsWk,g.n,'obs'))||'';
-    var tcN=parseFloat(tc);
-    var resultado='';
-    if(tc){resultado=tcN>=50?'CORRECTO (>=50C)':tcN>=45?'ADVERTENCIA (45-50C)':'NO CONFORME (<45C)';}
-    aRows.push([g.ni,g.name,tf?parseFloat(tf):'',tc?parseFloat(tc):'',ap||'',resultado,fNom,fDNI,obs]);
+  grifos.forEach(g=>{
+    const tf=gv(mk('acs_s',acsWk,g.n,'tf'));
+    const tc=gv(mk('acs_s',acsWk,g.n,'tc'));
+    const ap=gv(mk('acs_s',acsWk,g.n,'ap'));
+    const tec=gv(mk('acs_s',acsWk,g.n,'tecnico'))||fNom;
+    const tcV=parseFloat(tc);
+    const estado=tcV&&tcV<50?'⚠️ T°C baja (<50°C)':tcV&&tcV>=50?'✅ Correcto':'—';
+    acsRows.push([g.ni,g.name,tf?parseFloat(tf):'',tc?parseFloat(tc):'',ap||'',tf||tc?tec:'',tf||tc?estado:'']);
   });
-  aRows.push([]);
-  // Añadir también control mensual ACS si existe
-  aRows.push(['--- CONTROL MENSUAL ACS ---','','','','','','','','']);
-  aRows.push(['Punto control','Temperatura caliente','Temperatura fria','Resultado','Tecnico','DNI','','','']);
-  grifos.forEach(function(g){
-    var tcm=gv(mk('acs_m',acsWk,g.n,'tc'));
-    var tfm=gv(mk('acs_m',acsWk,g.n,'tf'));
-    if(tcm||tfm){
-      var tcmN=parseFloat(tcm);
-      aRows.push([g.name,tcm?parseFloat(tcm):'',tfm?parseFloat(tfm):'',tcmN>=50?'CORRECTO':'NO CONFORME',fNom,fDNI,'','','']);
-    }
-  });
-  aRows.push([]);
-  aRows.push(['FIRMA DEL TECNICO','','','']);
-  aRows.push(['Nombre',fNom,'DNI',fDNI]);
-  aRows.push(['Fecha',fFec,'Certificacion','Documento oficial RD 487/2022']);
-  var ws4=XLSX.utils.aoa_to_sheet(aRows);
-  ws4['!cols']=[{wch:8},{wch:32},{wch:14},{wch:16},{wch:18},{wch:28},{wch:28},{wch:16},{wch:28}];
-  XLSX.utils.book_append_sheet(wb,ws4,'ACS Grifos');
+  acsRows.push([]);
+  acsRows.push(['TÉCNICO RESPONSABLE',fNom,'FECHA',fFec,'✅ Firma digital registrada']);
+  const wsAcs=XLSX.utils.aoa_to_sheet(acsRows);
+  wsAcs['!cols']=[{wch:8},{wch:30},{wch:18},{wch:22},{wch:30},{wch:24},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,wsAcs,'ACS Grifos');
 
-  // ── HOJA 5: AGUA POTABLE ─────────────────────────────
-  var PUNTOS_POT=[{n:1,name:'Deposito principal'},{n:2,name:'Punto de entrada'},{n:3,name:'Red de distribucion'}];
-  var potRows=[
-    ['REGISTRO AGUA POTABLE - Semana '+potWk],
-    ['Empresa: '+empresa+' | Tecnico: '+fNom+' | DNI: '+fDNI],
-    ['Rangos: Cloro libre 0.2-1.0 mg/L | pH 6.5-9.5 | Turbidez <4 NTU'],
+  // ── HOJA 5: AGUA POTABLE ─────────────────────────────────────
+  const potRows=[
+    ['AGUA POTABLE — Semana '+potWk],
+    ['Empresa: '+empresa+' · Técnico: '+fNom],
     [],
-    ['PUNTO DE CONTROL','CLORO LIBRE(mg/L)','pH','TURBIDEZ(NTU)','RESULTADO','TECNICO','DNI','OBSERVACIONES']
+    ['PUNTO DE CONTROL','CLORO LIBRE (mg/L)','pH','TURBIDEZ (NTU)','RESULTADO','TÉCNICO']
   ];
-  PUNTOS_POT.forEach(function(p){
-    var b=mk('pot',potWk,p.n);
-    var cl=gv(b+'__cl');var ph=gv(b+'__ph');var trb=gv(b+'__trb');var res=gv(b+'__res');var obs=gv(b+'__obs')||'';
-    potRows.push([p.name,cl?parseFloat(cl):'',ph?parseFloat(ph):'',trb?parseFloat(trb):'',res||'',fNom,fDNI,obs]);
+  PUNTOS.forEach(p=>{
+    const b=mk('pot',potWk,p.n);
+    const cl=gv(b+'__cl');const ph=gv(b+'__ph');const trb=gv(b+'__trb');const res=gv(b+'__res');
+    const tec=gv(b+'__tecnico')||fNom;
+    potRows.push([p.name,cl?parseFloat(cl):'',ph?parseFloat(ph):'',trb?parseFloat(trb):'',res||'',cl||ph?tec:'']);
   });
   potRows.push([]);
-  potRows.push(['FIRMA DEL TECNICO','','','']);
-  potRows.push(['Nombre',fNom,'DNI',fDNI]);
-  potRows.push(['Fecha',fFec,'Certificacion','Documento oficial RD 487/2022']);
-  var ws5=XLSX.utils.aoa_to_sheet(potRows);
-  ws5['!cols']=[{wch:30},{wch:18},{wch:10},{wch:18},{wch:28},{wch:28},{wch:16},{wch:30}];
-  XLSX.utils.book_append_sheet(wb,ws5,'Agua Potable');
+  potRows.push(['TÉCNICO RESPONSABLE',fNom,'FECHA',fFec,'✅ Firma digital registrada']);
+  const wsPot=XLSX.utils.aoa_to_sheet(potRows);
+  wsPot['!cols']=[{wch:30},{wch:20},{wch:10},{wch:20},{wch:20},{wch:24}];
+  XLSX.utils.book_append_sheet(wb,wsPot,'Agua Potable');
 
-  // ── HOJA 6: INCIDENCIAS ──────────────────────────────
-  var iRows=[
-    ['REGISTRO DE INCIDENCIAS - '+empresa],
-    ['Tecnico: '+fNom+' | DNI: '+fDNI+' | Generado: '+now.toLocaleString('es-ES')],
+  // ── HOJA 6: INCIDENCIAS ──────────────────────────────────────
+  const incs=getIncs();
+  const incRows=[
+    ['INCIDENCIAS — '+empresa],
+    ['Generado: '+now.toLocaleString('es-ES')+' · Técnico: '+fNom],
     [],
-    ['ID','TITULO','UBICACION','PRIORIDAD','ESTADO','FECHA APERTURA','DESCRIPCION','TECNICO','DNI']
+    ['ID','TÍTULO','UBICACIÓN','PRIORIDAD','ESTADO','FECHA','DESCRIPCIÓN']
   ];
-  var allIncs=getIncs();
-  if(allIncs.length){
-    allIncs.forEach(function(i){
-      iRows.push([
-        i.id,i.titulo,i.ubic||'—',
-        i.prio==='alta'?'ALTA':i.prio==='media'?'MEDIA':'BAJA',
-        i.status==='abierta'?'ABIERTA':i.status==='proceso'?'EN PROCESO':'CERRADA',
-        i.fecha,i.desc||'—',fNom,fDNI
-      ]);
-    });
-  } else {
-    iRows.push(['Sin incidencias registradas','','','','','','','','']);
-  }
-  iRows.push([]);
-  iRows.push(['RESUMEN','','','']);
-  iRows.push(['Total',allIncs.length,'Abiertas',allIncs.filter(function(i){return i.status==='abierta';}).length]);
-  iRows.push(['En proceso',allIncs.filter(function(i){return i.status==='proceso';}).length,'Cerradas',allIncs.filter(function(i){return i.status==='cerrada';}).length]);
-  var ws6=XLSX.utils.aoa_to_sheet(iRows);
-  ws6['!cols']=[{wch:16},{wch:32},{wch:22},{wch:12},{wch:16},{wch:20},{wch:40},{wch:28},{wch:16}];
-  XLSX.utils.book_append_sheet(wb,ws6,'Incidencias');
-
-  // ── HOJA 7: HISTORIAL ALERTAS ────────────────────────
-  var hRows=[
-    ['HISTORIAL DE ALERTAS Y DESVIACIONES - '+empresa],
-    ['Generado: '+now.toLocaleString('es-ES')+' | Tecnico: '+fNom],
-    ['Total alertas: '+ah.length+' | Criticas: '+ah.filter(function(a){return a.type==='bad';}).length+' | Advertencias: '+ah.filter(function(a){return a.type==='warn';}).length],
-    [],
-    ['FECHA Y HORA','DESCRIPCION DE LA ALERTA','TIPO','GRAVEDAD']
-  ];
-  if(ah.length){
-    ah.forEach(function(a){
-      hRows.push([a.time,a.msg,a.type==='bad'?'CRITICA':'ADVERTENCIA',a.type==='bad'?'ALTA':'MEDIA']);
-    });
-  } else {
-    hRows.push(['Sin alertas registradas en este periodo','','','']);
-  }
-  var ws7=XLSX.utils.aoa_to_sheet(hRows);
-  ws7['!cols']=[{wch:22},{wch:55},{wch:16},{wch:12}];
-  XLSX.utils.book_append_sheet(wb,ws7,'Historial Alertas');
-
-  // ── HOJA 8: EVAPORATIVOS MENSUAL ──────────────────────
-  var emRows=[
-    ['REGISTRO MENSUAL CONDENSADORES EVAPORATIVOS - '+MOS[emMo].toUpperCase()+' '+acsMensualYr2],
-    ['Empresa: '+empresa+' | Tecnico: '+fNom+' | DNI: '+fDNI],
-    ['26 Unidades | Rangos: pH 7.0-8.5 | Temp max 37°C | Turbidez max 5 NTU'],
-    [],
-    ['N°','EVAPORATIVO','BIOCIDAD (mg/L)','pH','TEMPERATURA (°C)','TURBIDEZ (NTU)','ESTADO pH','ESTADO TEMP','TECNICO','DNI']
-  ];
-  var emYrVal=acsMensualYr2;
-  for(var _i=1;_i<=26;_i++){
-    var _base=mk('evm',emYrVal,emMo,_i);
-    var _bio=gv(_base+'_bio');var _ph=gv(_base+'_ph');var _tmp=gv(_base+'_tmp');var _trb=gv(_base+'_trb');
-    var _phN=parseFloat(_ph);var _tmpN=parseFloat(_tmp);var _trbN=parseFloat(_trb);
-    var _stPh=_ph?(_phN>=7&&_phN<=8.5?'CORRECTO':'FUERA RANGO'):'';
-    var _stTmp=_tmp?(_tmpN<=37?'CORRECTO':'>37°C ALERTA'):'';
-    emRows.push([_i,'Evaporativo N° '+_i,_bio?parseFloat(_bio):'',_ph?parseFloat(_ph):'',_tmp?parseFloat(_tmp):'',_trb?parseFloat(_trb):'',_stPh,_stTmp,fNom,fDNI]);
-  }
-  emRows.push([]);
-  emRows.push(['FIRMA DEL TECNICO','','','']);
-  emRows.push(['Nombre',fNom,'DNI',fDNI,'Fecha',fFec,'Documento oficial RD 487/2022']);
-  var wsEm=XLSX.utils.aoa_to_sheet(emRows);
-  wsEm['!cols']=[{wch:6},{wch:22},{wch:18},{wch:10},{wch:18},{wch:16},{wch:16},{wch:18},{wch:28},{wch:16}];
-  XLSX.utils.book_append_sheet(wb,wsEm,'Evaporativos Mensual');
-
-  // ── HOJA 8: AGUA FRIA SANITARIA ─────────────────────
-  var afsRows=[
-    ['REGISTRO DIARIO AGUA FRIA SANITARIA - '+now.toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'})],
-    ['Empresa: '+empresa+' | Tecnico: '+fNom+' | DNI: '+fDNI],
-    ['Rangos: pH 6.5-9.5 | Cloro libre 0.2-1.0 mg/L'],
-    [],
-    ['Nr','PUNTO DE CONTROL','pH (DIARIO)','CLORO (DIARIO)','TEMP DEPOSITO (SEMANAL)','TECNICO','OBSERVACIONES']
-  ];
-  var AFS_P=[{n:'40',name:'Deposito Aporte Box Lavado'},{n:'5',name:'Lavabo Aseo Antecamara Congelado'}];
-  var afsDate=document.getElementById('afsDate')?document.getElementById('afsDate').value:td;
-  AFS_P.forEach(function(p){
-    var ph=gv(mk('afs',afsDate,p.n,'ph'));var cl=gv(mk('afs',afsDate,p.n,'cloro'));var tmp=gv(mk('afs',afsDate,p.n,'temp'));var tec=gv(mk('afs',afsDate,p.n,'tec'))||fNom;
-    afsRows.push([p.n,p.name,ph?parseFloat(ph):'',cl?parseFloat(cl):'',tmp?parseFloat(tmp):'',tec,gv(mk('afs',afsDate,'obs'))||'']);
+  incs.forEach(i=>{
+    incRows.push([
+      i.id,i.titulo,i.ubic||'—',
+      i.prio==='alta'?'🔴 Alta':i.prio==='media'?'🟡 Media':'🟢 Baja',
+      i.status==='abierta'?'🔴 Abierta':i.status==='proceso'?'🟡 En proceso':'✅ Cerrada',
+      i.fecha,i.desc||'—'
+    ]);
   });
-  afsRows.push([]);afsRows.push(['FIRMA',fNom,'DNI',fDNI,'Fecha',fFec,'Documento oficial RD 487/2022']);
-  var ws8=XLSX.utils.aoa_to_sheet(afsRows);
-  ws8['!cols']=[{wch:8},{wch:36},{wch:14},{wch:16},{wch:28},{wch:28},{wch:36}];
-  XLSX.utils.book_append_sheet(wb,ws8,'Agua Fria Sanitaria');
+  if(!incs.length)incRows.push(['Sin incidencias registradas','','','','','','']);
+  incRows.push([]);
+  incRows.push(['TÉCNICO RESPONSABLE',fNom,'FECHA',fFec,'✅ Firma digital en sistema']);
+  const wsInc=XLSX.utils.aoa_to_sheet(incRows);
+  wsInc['!cols']=[{wch:14},{wch:30},{wch:20},{wch:12},{wch:18},{wch:22},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,wsInc,'Incidencias');
 
-  // ── HOJA 9: ACS MENSUAL ───────────────────────────────
-  var acsMRows=[
-    ['CONTROL MENSUAL ACS - '+MOS[acsMensualMo]+' '+acsMensualYr2],
-    ['Empresa: '+empresa+' | Tecnico: '+fNom+' | DNI: '+fDNI],
-    ['Normativa: T. caliente >= 50C | Estado conservacion grifos'],
-    [],
-    ['Nr','Cod.','GRIFO','CLORO (mg/L)','pH','CONSERVACION','T.CALIENTE (C)','T.FRIA (C)','RESULTADO']
-  ];
-  var mesKey2=acsMensualYr2+'_'+String(acsMensualMo+1).padStart(2,'0');
-  ACS_MENSUAL_GRIFOS.forEach(function(g){
-    var base=mk('acsm',mesKey2,g.n);
-    var cl=gv(base+'_cl');var ph=gv(base+'_ph');var cons=gv(base+'_cons');var tc=gv(base+'_tc');var tf=gv(base+'_tf');
-    var tcN=parseFloat(tc);var res=tc?(tcN>=50?'CORRECTO (>=50C)':tcN>=45?'ADVERTENCIA':'NO CONFORME (<45C)'):'';
-    acsMRows.push([g.ni,g.cod,g.name,cl?parseFloat(cl):'',ph?parseFloat(ph):'',cons||'',tc?parseFloat(tc):'',tf?parseFloat(tf):'',res]);
-  });
-  acsMRows.push([]);acsMRows.push(['--- DEPOSITOS ---','','','','','','','','']);
-  acsMRows.push(['Nr','','Deposito','Cloro','pH','Temperatura','','','']);
-  ACS_DEPOSITOS.forEach(function(d){
-    var base=mk('acsd',mesKey2,d.n);acsMRows.push([d.n,'',d.name,gv(base+'_cl')||'',gv(base+'_ph')||'',gv(base+'_tmp')||'','','','']);
-  });
-  acsMRows.push([]);acsMRows.push(['FIRMA',fNom,'DNI',fDNI,'Fecha',fFec,'Documento oficial RD 487/2022']);
-  var ws9=XLSX.utils.aoa_to_sheet(acsMRows);
-  ws9['!cols']=[{wch:8},{wch:10},{wch:34},{wch:14},{wch:10},{wch:16},{wch:16},{wch:14},{wch:24}];
-  XLSX.utils.book_append_sheet(wb,ws9,'ACS Mensual');
-
-  // ── GUARDAR ──────────────────────────────────────────
-  var fname='AquaPro_'+empresa.replace(/[^a-zA-Z0-9]/g,'_')+'_'+MOS_S[ppclMo]+yr+'_'+fNom.split(' ')[0]+'.xlsx';
+  // ── GUARDAR ──────────────────────────────────────────────────
+  const fname='AquaPro_'+empresa.replace(/[^a-zA-Z0-9]/g,'_')+'_'+MOS_S[ppclMo]+yr+'_'+fNom.split(' ')[0]+'.xlsx';
   XLSX.writeFile(wb,fname);
-  toast('Excel exportado: 7 hojas con tecnicos, DNI y estadisticas');
+  toast('📊 Excel completo: '+fname);
 }
-
-
-
 function sendEmail(){
   const c=co?co.name:'—';
   const tecnico=gv('__tecnico')||'—';
@@ -2760,623 +2548,24 @@ function isoWeek(date){const d=new Date(Date.UTC(date.getFullYear(),date.getMont
 function addWeeks(wk,n){const[y,w]=wk.split('-W').map(Number);const d=new Date(Date.UTC(y,0,4));d.setUTCDate(d.getUTCDate()+(w-1)*7-(d.getUTCDay()||7)+1+n*7);return isoWeek(d);}
 function weekLbl(wk){const[y,w]=wk.split('-W').map(Number);const d=new Date(Date.UTC(y,0,4));d.setUTCDate(d.getUTCDate()+(w-1)*7-(d.getUTCDay()||7)+1);const e=new Date(d);e.setUTCDate(e.getUTCDate()+6);const f=v=>v.toLocaleDateString(undefined,{day:'2-digit',month:'short'});return tr('week_lbl')+' '+w+' · '+f(d)+' – '+f(e);}
 function ds(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-// ═══ HISTORIAL DE ALERTAS ════════════════════════════
-function getAlertHist(){try{var s=localStorage.getItem('__ah_'+(co?co.code:''));if(s)return JSON.parse(s);}catch(e){}return [];}
-function saveAlertHist(h){try{localStorage.setItem('__ah_'+(co?co.code:''),JSON.stringify(h.slice(0,100)));}catch(e){}}
-function addAlertHist(msg,type){var h=getAlertHist();h.unshift({msg:msg,type:type,time:new Date().toLocaleString('es-ES')});saveAlertHist(h);renderAlertHist();sendPushNotif('AquaControl Pro — Alerta',msg);}
-function clearAlertHist(){if(!confirm('Borrar historial de alertas?'))return;localStorage.removeItem('__ah_'+(co?co.code:''));renderAlertHist();toast('Historial borrado');}
-function renderAlertHist(){
-  var el=document.getElementById('ahList');if(!el)return;
-  var h=getAlertHist();
-  var badge=document.getElementById('ahBadge');if(badge)badge.textContent=h.length;
-  var sub=document.getElementById('ahSub');if(sub)sub.textContent='Ultimas '+h.length+' alertas';
-  if(!h.length){el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px">Sin alertas recientes</div>';return;}
-  el.innerHTML=h.map(function(a){return '<div class="ah-item"><div class="ah-dot '+a.type+'"></div><div class="ah-msg">'+a.msg+'</div><div class="ah-time">'+a.time+'</div></div>';}).join('');
-}
+</script>
 
-// ═══ OVERRIDE checkAlerts ════════════════════════════
-var _origCA=checkAlerts;
-checkAlerts=function(){
-  if(!modOn('alertas'))return;
-  var cfg=getAlertasCfg();var alerts=[];
-  var today=new Date();var yr=parseInt(document.getElementById('ppclYr').value)||today.getFullYear();
-  var d=today.getDate();
-  getConds().forEach(function(c){
-    var ph=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,'ph')));
-    var tmp=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,'temperatura')));
-    var trb=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,'turbidez')));
-    if(cfg.ph_low!==false&&ph&&ph<7.2)alerts.push({t:'bad',m:tr('alert_ph_low')+c.name+': '+ph});
-    if(cfg.ph_high!==false&&ph&&ph>7.8)alerts.push({t:'bad',m:tr('alert_ph_high')+c.name+': '+ph});
-    if(cfg.temp_alta!==false&&tmp&&tmp>37)alerts.push({t:'bad',m:tr('alert_temp')+c.name+': '+tmp+'C'});
-    if(cfg.turbidez!==false&&trb&&trb>2)alerts.push({t:'warn',m:tr('alert_turb')+c.name+': '+trb+' NTU'});
-  });
-  getPiscs().forEach(function(p){
-    var cl=parseFloat(gv(mk('pisc',ds(today),'manana',p.id,'cloro')));
-    var ph=parseFloat(gv(mk('pisc',ds(today),'manana',p.id,'ph')));
-    if(cfg.cloro_low!==false&&cl&&cl<0.5)alerts.push({t:'bad',m:tr('alert_cl_low')+p.name+': '+cl+' mg/L'});
-    if(cfg.cloro_high!==false&&cl&&cl>2.0)alerts.push({t:'warn',m:tr('alert_cl_high')+p.name+': '+cl+' mg/L'});
-    if(cfg.ph_low!==false&&ph&&ph<7.2)alerts.push({t:'bad',m:tr('alert_ph_low_p')+p.name+': '+ph});
-  });
-  var cont=document.getElementById('alertsContainer');
-  if(cont)cont.innerHTML=alerts.map(function(a){return '<div class="abanner '+a.t+'">'+a.m+'</div>';}).join('');
-  alerts.forEach(function(a){addAlertHist(a.m,a.t);});
-  if(alerts.length>0)showPushBanner();
-};
+<script>
+// ═══════════════════════════════════════════════════
+// MÓDULOS NUEVOS: ACS Semanal 38 grifos, ACS Mensual,
+// Depósitos anuales, Diario Agua Fría Sanitaria
+// Técnico y DNI en cada registro
+// ═══════════════════════════════════════════════════
 
-// ═══ ANALÍTICA AVANZADA ══════════════════════════════
-var anlParam='ph';var anlChart=null;
-function setAnlParam(p){anlParam=p;renderAnalytica();}
-function renderAnalytica(){
-  var yr=parseInt(document.getElementById('ppclYr').value)||new Date().getFullYear();
-  var days=new Date(yr,ppclMo+1,0).getDate();
-  var conds=getConds();
-  var prevMo=ppclMo===0?11:ppclMo-1;var prevYr=ppclMo===0?yr-1:yr;
-  var prevDays=new Date(prevYr,prevMo+1,0).getDate();
-  var all=[],prevAll=[];
-  conds.forEach(function(c){
-    for(var d=1;d<=days;d++){var v=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,anlParam)));if(!isNaN(v)&&v>0)all.push(v);}
-    for(var d=1;d<=prevDays;d++){var v=parseFloat(gv(mk('ppcl',prevYr,prevMo,c.n,d,anlParam)));if(!isNaN(v)&&v>0)prevAll.push(v);}
-  });
-  var avg=all.length?all.reduce(function(a,b){return a+b;},0)/all.length:0;
-  var prevAvg=prevAll.length?prevAll.reduce(function(a,b){return a+b;},0)/prevAll.length:0;
-  var mn=all.length?Math.min.apply(null,all):0;var mx=all.length?Math.max.apply(null,all):0;
-  var outRng=all.filter(function(v){if(anlParam==='ph')return v<7||v>8.5;if(anlParam==='temperatura')return v>37;if(anlParam==='turbidez')return v>5;return false;}).length;
-  var tDir=avg>prevAvg?'up':avg<prevAvg?'dn':'eq';
-  var tTxt=avg>prevAvg?'+ vs mes ant.':avg<prevAvg?'- vs mes ant.':'= Sin cambio';
-  var kpis=document.getElementById('anlKpis');
-  if(kpis)kpis.innerHTML='<div class="anl-card"><div class="anl-val" style="color:var(--blue)">'+(avg?avg.toFixed(2):'—')+'</div><div class="anl-lbl">PROMEDIO</div><div class="anl-trend '+tDir+'">'+tTxt+'</div></div>'
-    +'<div class="anl-card"><div class="anl-val" style="color:var(--green)">'+(mn?mn.toFixed(2):'—')+'</div><div class="anl-lbl">MINIMO</div></div>'
-    +'<div class="anl-card"><div class="anl-val" style="color:var(--amber)">'+(mx?mx.toFixed(2):'—')+'</div><div class="anl-lbl">MAXIMO</div></div>'
-    +'<div class="anl-card"><div class="anl-val" style="color:'+(outRng>0?'var(--red)':'var(--green)')+'">'+outRng+'</div><div class="anl-lbl">FUERA RANGO</div></div>';
-  var sub=document.getElementById('anlSub');if(sub)sub.textContent=anlParam.toUpperCase()+' '+MOS[ppclMo]+' vs '+MOS[prevMo];
-  var canvas=document.getElementById('anlChart');if(!canvas||typeof Chart==='undefined')return;
-  if(anlChart)anlChart.destroy();
-  var labels=[];var d1=[];var d2=[];var maxD=Math.max(days,prevDays);
-  for(var d=1;d<=maxD;d++){
-    labels.push(String(d));
-    var s1=0,c1=0;conds.forEach(function(c){var v=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,anlParam)));if(!isNaN(v)&&v>0){s1+=v;c1++;}});d1.push(c1?s1/c1:null);
-    var s2=0,c2=0;conds.forEach(function(c){var v=parseFloat(gv(mk('ppcl',prevYr,prevMo,c.n,d,anlParam)));if(!isNaN(v)&&v>0){s2+=v;c2++;}});d2.push(c2?s2/c2:null);
-  }
-  anlChart=new Chart(canvas,{type:'line',data:{labels:labels,datasets:[{label:MOS[ppclMo],data:d1,borderColor:'#2589c7',backgroundColor:'rgba(37,137,199,.1)',tension:0.4,spanGaps:true,pointRadius:1,borderWidth:2},{label:MOS[prevMo],data:d2,borderColor:'#aaa',backgroundColor:'transparent',tension:0.4,spanGaps:true,pointRadius:0,borderDash:[4,4],borderWidth:1.5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:9},boxWidth:10}}},scales:{y:{ticks:{font:{size:8}}},x:{ticks:{font:{size:8}}}}}});
-}
-
-// ═══ RECORDATORIOS ═══════════════════════════════════
-var REMINDERS=[
-  {key:'cond_d',icon:'Condensadores',title:'Control condensadores',sub:'Biocidad - Temp - pH - Turbidez',freq:1},
-  {key:'pisc_m',icon:'Piscina',title:'Analisis piscina manana',sub:'Cloro - pH - Temperatura - Turbidez',freq:1},
-  {key:'pisc_t',icon:'Piscina',title:'Analisis piscina tarde',sub:'Cloro - pH - Temperatura - Turbidez',freq:1},
-  {key:'acs_w',icon:'ACS',title:'Control semanal ACS',sub:'Temperaturas grifos ACS',freq:7},
-  {key:'pot_w',icon:'Potable',title:'Control agua potable',sub:'Cloro libre - pH - Turbidez',freq:7},
-  {key:'inf_m',icon:'Informe',title:'Informe mensual',sub:'Generacion y envio de informe',freq:30},
-  {key:'micro',icon:'Legionella',title:'Analisis microbiologico legionella',sub:'Toma de muestras obligatoria',freq:90},
-];
-function renderReminders(){
-  var el=document.getElementById('remList');if(!el)return;
-  var now=new Date();
-  el.innerHTML=REMINDERS.map(function(r){
-    var last=localStorage.getItem('__rem_'+r.key+(co?'_'+co.code:''));
-    var lastD=last?new Date(parseInt(last)):null;
-    var dAgo=lastD?Math.floor((now-lastD)/86400000):999;
-    var left=Math.max(0,r.freq-dAgo);
-    var color=left===0?'var(--red)':left<=2?'var(--amber)':'var(--blue)';
-    var lbl=left===0?'HOY':left===1?'1 dia':left+' dias';
-    return '<div class="rem-card" data-remkey="'+r.key+'" style="cursor:pointer" onclick="markRem(this.dataset.remkey)">'
-      +'<div style="font-size:20px;flex-shrink:0">&#128197;</div>'
-      +'<div class="rem-body"><div class="rem-title">'+r.title+'</div><div class="rem-sub">'+r.sub+'</div></div>'
-      +'<div class="rem-days" style="color:'+color+'">'+lbl+'</div>'
-      +'</div>';
-  }).join('');
-}
-function markRem(key){localStorage.setItem('__rem_'+key+(co?'_'+co.code:''),Date.now().toString());toast('Control marcado como completado');renderReminders();}
-
-// ═══ NOTIFICACIONES PUSH ══════════════════════════════
-var pushGranted=false;
-function requestPush(){
-  var msg=document.getElementById('pushMsg');var btn=document.getElementById('btnPush');
-  if(!('Notification' in window)){if(msg)msg.textContent='Tu navegador no soporta notificaciones';return;}
-  if(Notification.permission==='granted'){pushGranted=true;if(msg)msg.textContent='Notificaciones ya activas';return;}
-  if(Notification.permission==='denied'){if(msg)msg.textContent='Bloqueadas. Activaras en configuracion del navegador';return;}
-  Notification.requestPermission().then(function(p){
-    if(p==='granted'){pushGranted=true;if(msg)msg.textContent='Notificaciones activadas';if(btn){btn.textContent='Notificaciones activas';btn.style.background='var(--green)';}toast('Notificaciones push activadas');}
-    else{if(msg)msg.textContent='Permiso denegado';}
-    updatePushStatus();
-  });
-}
-function sendPushNotif(title,body){
-  if(!pushGranted||Notification.permission!=='granted')return;
-  var last=parseInt(localStorage.getItem('__lastPush')||'0');
-  if(Date.now()-last<300000)return;
-  localStorage.setItem('__lastPush',Date.now().toString());
-  try{new Notification(title,{body:body});}catch(e){}
-}
-function showPushBanner(){
-  if(!('Notification' in window)||Notification.permission!=='default')return;
-  var cont=document.getElementById('alertsContainer');if(!cont)return;
-  if(document.getElementById('pushBannerAuto'))return;
-  var b=document.createElement('div');b.className='push-banner';b.id='pushBannerAuto';
-  var btnHtml='<button class="push-banner-btn" onclick="requestPush();var pb=document.getElementById(\"pushBannerAuto\");if(pb)pb.parentNode.removeChild(pb)">Activar</button>';
-  b.innerHTML='<div style="font-size:20px">&#128276;</div><div class="push-banner-txt"><b>Activa las notificaciones push</b><br>Recibe alertas aunque tengas la app cerrada</div>'+btnHtml;
-  cont.prepend(b);
-}
-function updatePushStatus(){
-  if(!('Notification' in window))return;
-  pushGranted=Notification.permission==='granted';
-  var bar=document.getElementById('pushStatusBar');
-  if(bar){var p=Notification.permission;bar.textContent=p==='granted'?'Notificaciones activas':p==='denied'?'Bloqueadas por el navegador':'No configuradas';bar.style.color=p==='granted'?'var(--green)':p==='denied'?'var(--red)':'var(--amber)';}
-}
-
-// ═══ EXCEL COMPLETO 6 HOJAS - MEJORADO ══════════════
-function exportExcel(){
-  if(typeof XLSX==='undefined'){toast('XLSX no disponible - verifica conexion');return;}
-  var wb=XLSX.utils.book_new();
-  var yr=parseInt(document.getElementById('ppclYr').value)||new Date().getFullYear();
-  var conds=getConds();var piscs=getPiscs();var grifos=getGrifos();
-  var now=new Date();
-  var empresa=co?co.name:'AquaControl Pro';var codigo=co?co.code:'—';
-  var tec=gv('__tecnico')||'Sin configurar';
-  var dni=gv('__tecnicoDNI')||'Sin configurar';
-  var fKey=mk('firma',ds(now),'manana');
-  var fNom=gv(fKey+'__nom')||tec;
-  var fDNI=gv(fKey+'__dni')||dni;
-  var fFec=gv(fKey+'__fec')||now.toLocaleString('es-ES');
-  var days=new Date(yr,ppclMo+1,0).getDate();
-  var td=ds(now);
-
-  // ── HOJA 1: RESUMEN ──────────────────────────────────
-  var wsR=XLSX.utils.book_new();
-  var resData=[
-    ['INFORME OFICIAL DE CONTROL SANITARIO — AQUACONTROL PRO','','',''],
-    ['','','',''],
-    ['DATOS DE LA EMPRESA','','',''],
-    ['Empresa',empresa,'Codigo de acceso',codigo],
-    ['Mes / Año',MOS[ppclMo]+' '+yr,'Fecha generacion',now.toLocaleString('es-ES')],
-    ['','','',''],
-    ['DATOS DEL TECNICO RESPONSABLE','','',''],
-    ['Nombre del tecnico',fNom,'',''],
-    ['DNI / N colegiado',fDNI,'',''],
-    ['Fecha de firma',fFec,'',''],
-    ['Estado firma','Firma digital registrada','',''],
-    ['','','',''],
-    ['RESUMEN DE INSTALACIONES','','',''],
-    ['Condensadores evaporativos',conds.length,'',''],
-    ['Piscinas y jacuzzis',piscs.length,'',''],
-    ['Grifos ACS',grifos.length,'',''],
-    ['Puntos agua potable',3,'',''],
-    ['','','',''],
-    ['RESUMEN DE REGISTROS MES ACTUAL','','',''],
-  ];
-  // Contar registros reales de condensadores
-  var totReg=0;var totFill=0;
-  conds.forEach(function(c){
-    for(var d=1;d<=days;d++){
-      ['biocidad','temperatura','ph','turbidez'].forEach(function(f){
-        totReg++;if(gv(mk('ppcl',yr,ppclMo,c.n,d,f)))totFill++;
-      });
-    }
-  });
-  resData.push(['Registros condensadores realizados',totFill,'de un total de',totReg]);
-  resData.push(['Porcentaje completado',totReg>0?Math.round(totFill/totReg*100)+'%':'0%','','']);
-  resData.push(['','','','']);
-  resData.push(['INCIDENCIAS','','','']);
-  var incs=getIncs();
-  resData.push(['Total incidencias',incs.length,'','']);
-  resData.push(['Incidencias abiertas',incs.filter(function(i){return i.status!=='cerrada';}).length,'','']);
-  resData.push(['Incidencias cerradas',incs.filter(function(i){return i.status==='cerrada';}).length,'','']);
-  resData.push(['','','','']);
-  resData.push(['ALERTAS','','','']);
-  var ah=getAlertHist();
-  resData.push(['Total alertas registradas',ah.length,'','']);
-  resData.push(['Alertas criticas',ah.filter(function(a){return a.type==='bad';}).length,'','']);
-  resData.push(['Alertas advertencia',ah.filter(function(a){return a.type==='warn';}).length,'','']);
-  resData.push(['','','','']);
-  resData.push(['CERTIFICACION','Supervision certificada por firma digital','','']);
-  resData.push(['Normativa aplicable','Real Decreto 487/2022 - Control y prevencion de la legionelosis','','']);
-  var ws1=XLSX.utils.aoa_to_sheet(resData);
-  ws1['!cols']=[{wch:35},{wch:40},{wch:25},{wch:35}];
-  XLSX.utils.book_append_sheet(wb,ws1,'Resumen');
-
-  // ── HOJA 2: CONDENSADORES ─────────────────────────────
-  var cH=['DIA','FECHA DIA'];
-  conds.forEach(function(c){
-    cH.push(c.name+' Biocidad(mg/L)');
-    cH.push(c.name+' Temperatura(C)');
-    cH.push(c.name+' pH');
-    cH.push(c.name+' Turbidez(NTU)');
-  });
-  cH.push('TECNICO RESPONSABLE','DNI','OBSERVACIONES');
-  var cRows=[
-    ['REGISTRO MENSUAL CONDENSADORES EVAPORATIVOS - '+MOS[ppclMo].toUpperCase()+' '+yr],
-    ['Empresa: '+empresa+' | Tecnico: '+fNom+' | DNI: '+fDNI],
-    ['Normativa: RD 487/2022 | Rango pH: 7.0-8.5 | Temp maxima: 37C | Turbidez maxima: 5 NTU'],
-    [],
-    cH
-  ];
-  var hasData=false;
-  for(var d=1;d<=days;d++){
-    var fecha=new Date(yr,ppclMo,d).toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
-    var row=[d,fecha];
-    var rowHasData=false;
-    conds.forEach(function(c){
-      var bio=gv(mk('ppcl',yr,ppclMo,c.n,d,'biocidad'));
-      var tmp=gv(mk('ppcl',yr,ppclMo,c.n,d,'temperatura'));
-      var ph=gv(mk('ppcl',yr,ppclMo,c.n,d,'ph'));
-      var trb=gv(mk('ppcl',yr,ppclMo,c.n,d,'turbidez'));
-      if(bio||tmp||ph||trb)rowHasData=true;
-      row.push(bio?parseFloat(bio):'');
-      row.push(tmp?parseFloat(tmp):'');
-      row.push(ph?parseFloat(ph):'');
-      row.push(trb?parseFloat(trb):'');
-    });
-    // Tecnico del dia (por el dia de firma o el tecnico global)
-    var tecDia=gv(mk('ppcl',yr,ppclMo,conds[0]?conds[0].n:1,d,'tecnico'))||fNom;
-    var dniDia=gv(mk('ppcl',yr,ppclMo,conds[0]?conds[0].n:1,d,'tecnico_dni'))||fDNI;
-    var obs=gv(mk('ppcl',yr,ppclMo,conds[0]?conds[0].n:1,d,'obs'))||'';
-    row.push(tecDia,dniDia,obs);
-    cRows.push(row);
-    if(rowHasData)hasData=true;
-  }
-  cRows.push([]);
-  cRows.push(['TOTALES Y ESTADISTICAS','','','']);
-  // Calcular promedios por condensador
-  conds.forEach(function(c){
-    var phVals=[];var tmpVals=[];var bioVals=[];var trbVals=[];
-    for(var d=1;d<=days;d++){
-      var ph=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,'ph')));
-      var tmp=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,'temperatura')));
-      var bio=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,'biocidad')));
-      var trb=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,'turbidez')));
-      if(!isNaN(ph)&&ph>0)phVals.push(ph);
-      if(!isNaN(tmp)&&tmp>0)tmpVals.push(tmp);
-      if(!isNaN(bio)&&bio>0)bioVals.push(bio);
-      if(!isNaN(trb)&&trb>0)trbVals.push(trb);
-    }
-    var avg=function(arr){return arr.length?Math.round(arr.reduce(function(a,b){return a+b;},0)/arr.length*100)/100:'-';};
-    cRows.push([c.name+' - pH promedio',avg(phVals),'pH fuera de rango (7-8.5)',phVals.filter(function(v){return v<7||v>8.5;}).length]);
-    cRows.push([c.name+' - Temp promedio (C)',avg(tmpVals),'Temp >37C (alertas)',tmpVals.filter(function(v){return v>37;}).length]);
-    cRows.push([c.name+' - Biocidad promedio',avg(bioVals),'','']);
-    cRows.push([c.name+' - Turbidez promedio',avg(trbVals),'Turbidez >5 NTU (alertas)',trbVals.filter(function(v){return v>5;}).length]);
-  });
-  cRows.push([]);
-  cRows.push(['FIRMA DEL TECNICO RESPONSABLE','','','']);
-  cRows.push(['Nombre',fNom,'DNI',fDNI]);
-  cRows.push(['Fecha firma',fFec,'','']);
-  cRows.push(['Certificacion','Documento oficial - Cumple RD 487/2022','','']);
-  var ws2=XLSX.utils.aoa_to_sheet(cRows);
-  ws2['!cols']=[{wch:6},{wch:28}].concat(conds.reduce(function(a){return a.concat([{wch:22},{wch:16},{wch:10},{wch:18}]);},[])).concat([{wch:28},{wch:16},{wch:30}]);
-  XLSX.utils.book_append_sheet(wb,ws2,'Condensadores');
-
-  // ── HOJA 3: PISCINAS ─────────────────────────────────
-  var pRows=[
-    ['REGISTRO DE PISCINAS Y JACUZZIS - '+now.toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'})],
-    ['Empresa: '+empresa+' | Tecnico: '+fNom+' | DNI: '+fDNI],
-    ['Rangos: Cloro 0.5-2.0 mg/L | pH 7.2-7.8 | Temp 24-40 C | Turbidez <2 NTU'],
-    [],
-    ['PISCINA','SESION','CLORO LIBRE(mg/L)','CLORO COMB.(mg/L)','pH','TEMP(C)','TURBIDEZ(NTU)','ALCALINIDAD(mg/L)','AFORO','ALGAS','OBSERVACIONES','TECNICO','DNI','ESTADO']
-  ];
-  var pStats={};
-  piscs.forEach(function(p){
-    pStats[p.id]={clOk:0,clBad:0,phOk:0,phBad:0};
-    ['manana','tarde'].forEach(function(ses){
-      var cl=gv(mk('pisc',td,ses,p.id,'cloro'));
-      var clc=gv(mk('pisc',td,ses,p.id,'cloro_c'));
-      var ph=gv(mk('pisc',td,ses,p.id,'ph'));
-      var tmp=gv(mk('pisc',td,ses,p.id,'temp'));
-      var trb=gv(mk('pisc',td,ses,p.id,'turb'));
-      var alc=gv(mk('pisc',td,ses,p.id,'alc'));
-      var aforo=gv(mk('pisc',td,ses,p.id,'aforo'));
-      var algas=gv(mk('pisc',td,ses,p.id,'algas'));
-      var obs=gv(mk('pisc',td,ses,p.id,'obs'));
-      var clN=parseFloat(cl);var phN=parseFloat(ph);
-      var clOk=cl&&clN>=0.5&&clN<=2;var phOk=ph&&phN>=7.2&&phN<=7.8;
-      var estado='';
-      if(cl||ph){
-        if(!clOk&&cl)estado='CLORO FUERA RANGO';
-        else if(!phOk&&ph)estado='pH FUERA RANGO';
-        else if(clOk&&phOk)estado='CORRECTO';
-      }
-      pRows.push([
-        (p.tipo==='jacuzzi'?'Jacuzzi: ':'Piscina: ')+p.name,
-        ses==='manana'?'Manana (apertura)':'Tarde (cierre)',
-        cl?parseFloat(cl):'',clc?parseFloat(clc):'',
-        ph?parseFloat(ph):'',tmp?parseFloat(tmp):'',
-        trb?parseFloat(trb):'',alc?parseFloat(alc):'',
-        aforo||'',algas||'',obs||'',fNom,fDNI,estado
-      ]);
-    });
-  });
-  pRows.push([]);
-  pRows.push(['FIRMA DEL TECNICO','','','']);
-  pRows.push(['Nombre',fNom,'DNI',fDNI]);
-  pRows.push(['Fecha',fFec,'Certificacion','Documento oficial RD 487/2022']);
-  var ws3=XLSX.utils.aoa_to_sheet(pRows);
-  ws3['!cols']=[{wch:28},{wch:20},{wch:18},{wch:18},{wch:10},{wch:12},{wch:16},{wch:18},{wch:10},{wch:12},{wch:28},{wch:26},{wch:16},{wch:22}];
-  XLSX.utils.book_append_sheet(wb,ws3,'Piscinas');
-
-  // ── HOJA 4: ACS GRIFOS ───────────────────────────────
-  var aRows=[
-    ['REGISTRO ACS - AGUA CALIENTE SANITARIA - Semana '+acsWk],
-    ['Empresa: '+empresa+' | Tecnico: '+fNom+' | DNI: '+fDNI],
-    ['Normativa: T. caliente >= 50C | T. fria <= 20C en acumulador'],
-    [],
-    ['Nr','GRIFO / PUNTO DE CONTROL','T. FRIA (C)','T. CALIENTE (C)','APERTURA/ESTADO','RESULTADO','TECNICO RESPONSABLE','DNI','OBSERVACIONES']
-  ];
-  grifos.forEach(function(g){
-    var tf=gv(mk('acs_s',acsWk,g.n,'tf'));
-    var tc=gv(mk('acs_s',acsWk,g.n,'tc'));
-    var ap=gv(mk('acs_s',acsWk,g.n,'ap'));
-    var obs=gv(mk('acs_s',acsWk,g.n,'obs'))||'';
-    var tcN=parseFloat(tc);
-    var resultado='';
-    if(tc){resultado=tcN>=50?'CORRECTO (>=50C)':tcN>=45?'ADVERTENCIA (45-50C)':'NO CONFORME (<45C)';}
-    aRows.push([g.ni,g.name,tf?parseFloat(tf):'',tc?parseFloat(tc):'',ap||'',resultado,fNom,fDNI,obs]);
-  });
-  aRows.push([]);
-  // Añadir también control mensual ACS si existe
-  aRows.push(['--- CONTROL MENSUAL ACS ---','','','','','','','','']);
-  aRows.push(['Punto control','Temperatura caliente','Temperatura fria','Resultado','Tecnico','DNI','','','']);
-  grifos.forEach(function(g){
-    var tcm=gv(mk('acs_m',acsWk,g.n,'tc'));
-    var tfm=gv(mk('acs_m',acsWk,g.n,'tf'));
-    if(tcm||tfm){
-      var tcmN=parseFloat(tcm);
-      aRows.push([g.name,tcm?parseFloat(tcm):'',tfm?parseFloat(tfm):'',tcmN>=50?'CORRECTO':'NO CONFORME',fNom,fDNI,'','','']);
-    }
-  });
-  aRows.push([]);
-  aRows.push(['FIRMA DEL TECNICO','','','']);
-  aRows.push(['Nombre',fNom,'DNI',fDNI]);
-  aRows.push(['Fecha',fFec,'Certificacion','Documento oficial RD 487/2022']);
-  var ws4=XLSX.utils.aoa_to_sheet(aRows);
-  ws4['!cols']=[{wch:8},{wch:32},{wch:14},{wch:16},{wch:18},{wch:28},{wch:28},{wch:16},{wch:28}];
-  XLSX.utils.book_append_sheet(wb,ws4,'ACS Grifos');
-
-  // ── HOJA 5: AGUA POTABLE ─────────────────────────────
-  var PUNTOS_POT=[{n:1,name:'Deposito principal'},{n:2,name:'Punto de entrada'},{n:3,name:'Red de distribucion'}];
-  var potRows=[
-    ['REGISTRO AGUA POTABLE - Semana '+potWk],
-    ['Empresa: '+empresa+' | Tecnico: '+fNom+' | DNI: '+fDNI],
-    ['Rangos: Cloro libre 0.2-1.0 mg/L | pH 6.5-9.5 | Turbidez <4 NTU'],
-    [],
-    ['PUNTO DE CONTROL','CLORO LIBRE(mg/L)','pH','TURBIDEZ(NTU)','RESULTADO','TECNICO','DNI','OBSERVACIONES']
-  ];
-  PUNTOS_POT.forEach(function(p){
-    var b=mk('pot',potWk,p.n);
-    var cl=gv(b+'__cl');var ph=gv(b+'__ph');var trb=gv(b+'__trb');var res=gv(b+'__res');var obs=gv(b+'__obs')||'';
-    potRows.push([p.name,cl?parseFloat(cl):'',ph?parseFloat(ph):'',trb?parseFloat(trb):'',res||'',fNom,fDNI,obs]);
-  });
-  potRows.push([]);
-  potRows.push(['FIRMA DEL TECNICO','','','']);
-  potRows.push(['Nombre',fNom,'DNI',fDNI]);
-  potRows.push(['Fecha',fFec,'Certificacion','Documento oficial RD 487/2022']);
-  var ws5=XLSX.utils.aoa_to_sheet(potRows);
-  ws5['!cols']=[{wch:30},{wch:18},{wch:10},{wch:18},{wch:28},{wch:28},{wch:16},{wch:30}];
-  XLSX.utils.book_append_sheet(wb,ws5,'Agua Potable');
-
-  // ── HOJA 6: INCIDENCIAS ──────────────────────────────
-  var iRows=[
-    ['REGISTRO DE INCIDENCIAS - '+empresa],
-    ['Tecnico: '+fNom+' | DNI: '+fDNI+' | Generado: '+now.toLocaleString('es-ES')],
-    [],
-    ['ID','TITULO','UBICACION','PRIORIDAD','ESTADO','FECHA APERTURA','DESCRIPCION','TECNICO','DNI']
-  ];
-  var allIncs=getIncs();
-  if(allIncs.length){
-    allIncs.forEach(function(i){
-      iRows.push([
-        i.id,i.titulo,i.ubic||'—',
-        i.prio==='alta'?'ALTA':i.prio==='media'?'MEDIA':'BAJA',
-        i.status==='abierta'?'ABIERTA':i.status==='proceso'?'EN PROCESO':'CERRADA',
-        i.fecha,i.desc||'—',fNom,fDNI
-      ]);
-    });
-  } else {
-    iRows.push(['Sin incidencias registradas','','','','','','','','']);
-  }
-  iRows.push([]);
-  iRows.push(['RESUMEN','','','']);
-  iRows.push(['Total',allIncs.length,'Abiertas',allIncs.filter(function(i){return i.status==='abierta';}).length]);
-  iRows.push(['En proceso',allIncs.filter(function(i){return i.status==='proceso';}).length,'Cerradas',allIncs.filter(function(i){return i.status==='cerrada';}).length]);
-  var ws6=XLSX.utils.aoa_to_sheet(iRows);
-  ws6['!cols']=[{wch:16},{wch:32},{wch:22},{wch:12},{wch:16},{wch:20},{wch:40},{wch:28},{wch:16}];
-  XLSX.utils.book_append_sheet(wb,ws6,'Incidencias');
-
-  // ── HOJA 7: HISTORIAL ALERTAS ────────────────────────
-  var hRows=[
-    ['HISTORIAL DE ALERTAS Y DESVIACIONES - '+empresa],
-    ['Generado: '+now.toLocaleString('es-ES')+' | Tecnico: '+fNom],
-    ['Total alertas: '+ah.length+' | Criticas: '+ah.filter(function(a){return a.type==='bad';}).length+' | Advertencias: '+ah.filter(function(a){return a.type==='warn';}).length],
-    [],
-    ['FECHA Y HORA','DESCRIPCION DE LA ALERTA','TIPO','GRAVEDAD']
-  ];
-  if(ah.length){
-    ah.forEach(function(a){
-      hRows.push([a.time,a.msg,a.type==='bad'?'CRITICA':'ADVERTENCIA',a.type==='bad'?'ALTA':'MEDIA']);
-    });
-  } else {
-    hRows.push(['Sin alertas registradas en este periodo','','','']);
-  }
-  var ws7=XLSX.utils.aoa_to_sheet(hRows);
-  ws7['!cols']=[{wch:22},{wch:55},{wch:16},{wch:12}];
-  XLSX.utils.book_append_sheet(wb,ws7,'Historial Alertas');
-
-  // ── HOJA 8: EVAPORATIVOS MENSUAL ──────────────────────
-  var emRows=[
-    ['REGISTRO MENSUAL CONDENSADORES EVAPORATIVOS - '+MOS[emMo].toUpperCase()+' '+acsMensualYr2],
-    ['Empresa: '+empresa+' | Tecnico: '+fNom+' | DNI: '+fDNI],
-    ['26 Unidades | Rangos: pH 7.0-8.5 | Temp max 37°C | Turbidez max 5 NTU'],
-    [],
-    ['N°','EVAPORATIVO','BIOCIDAD (mg/L)','pH','TEMPERATURA (°C)','TURBIDEZ (NTU)','ESTADO pH','ESTADO TEMP','TECNICO','DNI']
-  ];
-  var emYrVal=acsMensualYr2;
-  for(var _i=1;_i<=26;_i++){
-    var _base=mk('evm',emYrVal,emMo,_i);
-    var _bio=gv(_base+'_bio');var _ph=gv(_base+'_ph');var _tmp=gv(_base+'_tmp');var _trb=gv(_base+'_trb');
-    var _phN=parseFloat(_ph);var _tmpN=parseFloat(_tmp);var _trbN=parseFloat(_trb);
-    var _stPh=_ph?(_phN>=7&&_phN<=8.5?'CORRECTO':'FUERA RANGO'):'';
-    var _stTmp=_tmp?(_tmpN<=37?'CORRECTO':'>37°C ALERTA'):'';
-    emRows.push([_i,'Evaporativo N° '+_i,_bio?parseFloat(_bio):'',_ph?parseFloat(_ph):'',_tmp?parseFloat(_tmp):'',_trb?parseFloat(_trb):'',_stPh,_stTmp,fNom,fDNI]);
-  }
-  emRows.push([]);
-  emRows.push(['FIRMA DEL TECNICO','','','']);
-  emRows.push(['Nombre',fNom,'DNI',fDNI,'Fecha',fFec,'Documento oficial RD 487/2022']);
-  var wsEm=XLSX.utils.aoa_to_sheet(emRows);
-  wsEm['!cols']=[{wch:6},{wch:22},{wch:18},{wch:10},{wch:18},{wch:16},{wch:16},{wch:18},{wch:28},{wch:16}];
-  XLSX.utils.book_append_sheet(wb,wsEm,'Evaporativos Mensual');
-
-  // ── HOJA 8: AGUA FRIA SANITARIA ─────────────────────
-  var afsRows=[
-    ['REGISTRO DIARIO AGUA FRIA SANITARIA - '+now.toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'})],
-    ['Empresa: '+empresa+' | Tecnico: '+fNom+' | DNI: '+fDNI],
-    ['Rangos: pH 6.5-9.5 | Cloro libre 0.2-1.0 mg/L'],
-    [],
-    ['Nr','PUNTO DE CONTROL','pH (DIARIO)','CLORO (DIARIO)','TEMP DEPOSITO (SEMANAL)','TECNICO','OBSERVACIONES']
-  ];
-  var AFS_P=[{n:'40',name:'Deposito Aporte Box Lavado'},{n:'5',name:'Lavabo Aseo Antecamara Congelado'}];
-  var afsDate=document.getElementById('afsDate')?document.getElementById('afsDate').value:td;
-  AFS_P.forEach(function(p){
-    var ph=gv(mk('afs',afsDate,p.n,'ph'));var cl=gv(mk('afs',afsDate,p.n,'cloro'));var tmp=gv(mk('afs',afsDate,p.n,'temp'));var tec=gv(mk('afs',afsDate,p.n,'tec'))||fNom;
-    afsRows.push([p.n,p.name,ph?parseFloat(ph):'',cl?parseFloat(cl):'',tmp?parseFloat(tmp):'',tec,gv(mk('afs',afsDate,'obs'))||'']);
-  });
-  afsRows.push([]);afsRows.push(['FIRMA',fNom,'DNI',fDNI,'Fecha',fFec,'Documento oficial RD 487/2022']);
-  var ws8=XLSX.utils.aoa_to_sheet(afsRows);
-  ws8['!cols']=[{wch:8},{wch:36},{wch:14},{wch:16},{wch:28},{wch:28},{wch:36}];
-  XLSX.utils.book_append_sheet(wb,ws8,'Agua Fria Sanitaria');
-
-  // ── HOJA 9: ACS MENSUAL ───────────────────────────────
-  var acsMRows=[
-    ['CONTROL MENSUAL ACS - '+MOS[acsMensualMo]+' '+acsMensualYr2],
-    ['Empresa: '+empresa+' | Tecnico: '+fNom+' | DNI: '+fDNI],
-    ['Normativa: T. caliente >= 50C | Estado conservacion grifos'],
-    [],
-    ['Nr','Cod.','GRIFO','CLORO (mg/L)','pH','CONSERVACION','T.CALIENTE (C)','T.FRIA (C)','RESULTADO']
-  ];
-  var mesKey2=acsMensualYr2+'_'+String(acsMensualMo+1).padStart(2,'0');
-  ACS_MENSUAL_GRIFOS.forEach(function(g){
-    var base=mk('acsm',mesKey2,g.n);
-    var cl=gv(base+'_cl');var ph=gv(base+'_ph');var cons=gv(base+'_cons');var tc=gv(base+'_tc');var tf=gv(base+'_tf');
-    var tcN=parseFloat(tc);var res=tc?(tcN>=50?'CORRECTO (>=50C)':tcN>=45?'ADVERTENCIA':'NO CONFORME (<45C)'):'';
-    acsMRows.push([g.ni,g.cod,g.name,cl?parseFloat(cl):'',ph?parseFloat(ph):'',cons||'',tc?parseFloat(tc):'',tf?parseFloat(tf):'',res]);
-  });
-  acsMRows.push([]);acsMRows.push(['--- DEPOSITOS ---','','','','','','','','']);
-  acsMRows.push(['Nr','','Deposito','Cloro','pH','Temperatura','','','']);
-  ACS_DEPOSITOS.forEach(function(d){
-    var base=mk('acsd',mesKey2,d.n);acsMRows.push([d.n,'',d.name,gv(base+'_cl')||'',gv(base+'_ph')||'',gv(base+'_tmp')||'','','','']);
-  });
-  acsMRows.push([]);acsMRows.push(['FIRMA',fNom,'DNI',fDNI,'Fecha',fFec,'Documento oficial RD 487/2022']);
-  var ws9=XLSX.utils.aoa_to_sheet(acsMRows);
-  ws9['!cols']=[{wch:8},{wch:10},{wch:34},{wch:14},{wch:10},{wch:16},{wch:16},{wch:14},{wch:24}];
-  XLSX.utils.book_append_sheet(wb,ws9,'ACS Mensual');
-
-  // ── GUARDAR ──────────────────────────────────────────
-  var fname='AquaPro_'+empresa.replace(/[^a-zA-Z0-9]/g,'_')+'_'+MOS_S[ppclMo]+yr+'_'+fNom.split(' ')[0]+'.xlsx';
-  XLSX.writeFile(wb,fname);
-  toast('Excel exportado: 7 hojas con tecnicos, DNI y estadisticas');
-}
-
-// ═══ PDF MEJORADO ═════════════════════════════════════
-function genPDF(){
-  var c=co||{name:'AquaControl Pro',code:'—'};
-  var yr=parseInt(document.getElementById('ppclYr').value)||new Date().getFullYear();
-  var mo=ppclMo;var now=new Date();var days=new Date(yr,mo+1,0).getDate();
-  var conds=getConds();var piscs=getPiscs();var grifos=getGrifos();
-  var fKey=mk('firma',ds(now),'manana');
-  var fImg=gv(fKey+'__img');var fNom=gv(fKey+'__nom')||gv('__tecnico')||'—';
-  var fDNI=gv(fKey+'__dni')||gv('__tecnicoDNI')||'—';
-  var fFec=gv(fKey+'__fec')||now.toLocaleString('es-ES');
-  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;font-size:9px;color:#1a2332;padding:10mm;}h2{font-size:11px;font-weight:700;color:#0a1628;margin:10px 0 4px;padding:4px 8px;background:#f0f4f8;border-left:3px solid #2589c7;}h3{font-size:9px;font-weight:700;color:#2589c7;margin:5px 0 2px;}table{width:100%;border-collapse:collapse;margin-bottom:6px;font-size:8px;}th{background:#f0f4f8;padding:3px 5px;text-align:left;border:1px solid #e2e8f0;}td{padding:2px 5px;border:1px solid #e2e8f0;}tr:nth-child(even) td{background:#f7f9fc;}.hdr{background:#0a1628;color:#fff;padding:10px 14px;border-radius:6px;margin-bottom:12px;display:flex;justify-content:space-between;}.bad{color:#c0392b;font-weight:700;}.sello{background:rgba(26,122,74,.08);border:1px solid rgba(26,122,74,.2);border-radius:6px;padding:8px;margin:10px 0;text-align:center;font-size:9px;}.firma-sec{border:1px solid #e2e8f0;border-radius:6px;padding:10px;margin-top:8px;display:flex;gap:12px;align-items:center;}.firma-img{max-width:140px;border:1px solid #e2e8f0;border-radius:4px;}</style></head><body>';
-  html+='<div class="hdr"><div><div style="font-size:14px;font-weight:800">AquaControl Pro</div><div style="font-size:9px;opacity:.6">'+c.name+' - '+c.code+'</div></div><div style="text-align:right;font-size:9px;opacity:.8"><div>'+MOS[mo]+' '+yr+'</div><div>'+now.toLocaleString('es-ES')+'</div><div style="margin-top:3px">Tecnico: '+fNom+' - DNI: '+fDNI+'</div></div></div>';
-  // Condensadores
-  html+='<h2>Condensadores Evaporativos - '+MOS[mo]+' '+yr+'</h2>';
-  conds.forEach(function(cond){
-    html+='<h3>'+cond.name+'</h3><table><thead><tr><th>DIA</th><th>BIOCIDAD</th><th>TEMP</th><th>pH</th><th>TURBIDEZ</th></tr></thead><tbody>';
-    for(var d=1;d<=days;d++){
-      var b=gv(mk('ppcl',yr,mo,cond.n,d,'biocidad'));var t=gv(mk('ppcl',yr,mo,cond.n,d,'temperatura'));var p=gv(mk('ppcl',yr,mo,cond.n,d,'ph'));var turb=gv(mk('ppcl',yr,mo,cond.n,d,'turbidez'));
-      if(!b&&!t&&!p&&!turb)continue;
-      var pc=parseFloat(p);
-      html+='<tr><td><b>'+d+'</b></td><td>'+(b||'—')+'</td><td>'+(t||'—')+'</td><td class="'+(p&&(pc<7||pc>8.5)?'bad':'')+'">'+(p||'—')+'</td><td>'+(turb||'—')+'</td></tr>';
-    }
-    html+='</tbody></table>';
-  });
-  // Piscinas
-  var todayStr=ds(now);
-  html+='<h2>Piscinas - '+now.toLocaleDateString('es-ES')+'</h2>';
-  piscs.forEach(function(p){
-    html+='<h3>'+(p.tipo==='jacuzzi'?'Jacuzzi: ':'Piscina: ')+p.name+'</h3><table><thead><tr><th>SESION</th><th>CLORO</th><th>pH</th><th>TEMP</th><th>TURB</th><th>ALGAS</th></tr></thead><tbody>';
-    ['manana','tarde'].forEach(function(ses){
-      var cl=gv(mk('pisc',todayStr,ses,p.id,'cloro'));var ph=gv(mk('pisc',todayStr,ses,p.id,'ph'));var tm=gv(mk('pisc',todayStr,ses,p.id,'temp'));var tb=gv(mk('pisc',todayStr,ses,p.id,'turb'));var al=gv(mk('pisc',todayStr,ses,p.id,'algas'));
-      if(!cl&&!ph&&!tm&&!tb)return;
-      var phN=parseFloat(ph);var clN=parseFloat(cl);
-      html+='<tr><td>'+(ses==='manana'?'Manana':'Tarde')+'</td><td class="'+(cl&&(clN<0.5||clN>2)?'bad':'')+'">'+(cl||'—')+'</td><td class="'+(ph&&(phN<7.2||phN>7.8)?'bad':'')+'">'+(ph||'—')+'</td><td>'+(tm||'—')+'</td><td>'+(tb||'—')+'</td><td>'+(al||'—')+'</td></tr>';
-    });
-    html+='</tbody></table>';
-  });
-  // ACS
-  html+='<h2>ACS Grifos - Semana '+acsWk+'</h2><table><thead><tr><th>Nr</th><th>GRIFO</th><th>T.FRIA</th><th>T.CALIENTE</th><th>APERTURA</th></tr></thead><tbody>';
-  grifos.forEach(function(g){var tc=gv(mk('acs_s',acsWk,g.n,'tc'));var tcN=parseFloat(tc);html+='<tr><td>'+g.ni+'</td><td>'+g.name+'</td><td>'+(gv(mk('acs_s',acsWk,g.n,'tf'))||'—')+'</td><td class="'+(tc&&tcN<50?'bad':'')+'">'+(tc||'—')+'</td><td>'+(gv(mk('acs_s',acsWk,g.n,'ap'))||'—')+'</td></tr>';});
-  html+='</tbody></table>';
-  // Historial alertas
-  var ah=getAlertHist();
-  if(ah.length){html+='<h2>Historial de Alertas</h2><table><thead><tr><th>FECHA</th><th>ALERTA</th><th>TIPO</th></tr></thead><tbody>';ah.slice(0,20).forEach(function(a){html+='<tr><td style="font-size:7px">'+a.time+'</td><td>'+a.msg+'</td><td style="color:'+(a.type==='bad'?'#c0392b':'#c97b00')+'">'+(a.type==='bad'?'Critica':'Advertencia')+'</td></tr>';});html+='</tbody></table>';}
-  // Sello
-  html+='<div class="sello"><b>Supervision certificada por firma digital</b> - Tecnico: '+fNom+' - DNI: '+fDNI+'<br><span style="color:#8899aa">Documento generado por AquaControl Pro - RD 487/2022</span></div>';
-  // Firma
-  html+='<div class="firma-sec">';
-  if(fImg){html+='<img src="'+fImg+'" class="firma-img"><div><div style="font-weight:700">'+fNom+'</div><div style="color:#4a5568">DNI: '+fDNI+'</div><div style="font-size:8px;color:#8899aa">'+fFec+'</div><div style="margin-top:6px;background:rgba(26,122,74,.08);padding:4px 8px;border-radius:4px;font-size:8px;color:#1a7a4a">Firma digital verificada</div></div>';}
-  else{html+='<div style="color:#8899aa">Sin firma registrada</div>';}
-  html+='</div></body></html>';
-  var w=window.open('','_blank');if(w){w.document.write(html);w.document.close();setTimeout(function(){w.print();},600);}
-  toast(tr('t_pdf'));
-}
-
-// ═══ AGUA FRIA SANITARIA (DIARIO) ═══════════════════
-// Puntos de control diario según el Excel
-AFS_PUNTOS=[
-  {n:'40',name:'Deposito Aporte Box Lavado'},
-  {n:'5',name:'Lavabo Aseo Antecamara Congelado'}
-];
-function renderAFS(){
-  var date=document.getElementById('afsDate').value||ds(new Date());
-  var html='';var tot=0;var ok=0;var alrt=0;
-  html+='<div class="card"><div class="chd" onclick="tog(this)"><div class="ci bl">🚰</div><div><div class="ct">Control Diario Agua Fria Sanitaria</div><div class="cs">'+date+'</div></div><span class="ctog">▼</span></div>';
-  html+='<div class="cbody on" style="padding:14px;overflow-x:auto"><table class="dt" style="min-width:460px">';
-  html+='<thead><tr><th>Nr</th><th>PUNTO DE CONTROL</th><th class="tc">pH<br><small>6.5-9.5</small></th><th class="tc">CLORO<br><small>0.2-1 mg/L</small></th><th class="tc">TEMP<br><small>semanal</small></th><th class="tc">TECNICO</th></tr></thead><tbody>';
-  AFS_PUNTOS.forEach(function(p){
-    var kph=mk('afs',date,p.n,'ph');var kcl=mk('afs',date,p.n,'cloro');var ktmp=mk('afs',date,p.n,'temp');var ktec=mk('afs',date,p.n,'tec');
-    var ph=gv(kph);var cl=gv(kcl);var tmp=gv(ktmp);
-    if(ph||cl)tot++;
-    var phN=parseFloat(ph);var clN=parseFloat(cl);
-    var phBad=ph&&(phN<6.5||phN>9.5);var clBad=cl&&(clN<0.2||clN>1.0);
-    if(phBad||clBad)alrt++;else if(ph||cl)ok++;
-    var tec=gv(ktec)||gv('__tecnico')||'';
-    html+='<tr>';
-    html+='<td><b>'+p.n+'</b></td><td style="font-size:11px">'+p.name+'</td>';
-    html+='<td class="tc"><input type="text" class="ci2'+(phBad?' bad':ph?' ok':'')+'" placeholder="pH" value="'+ph+'" inputmode="decimal" data-k="'+kph+'" data-f="ph" onchange="sv(this.dataset.k,this.value);colorI(this,this.dataset.f);doSave();" oninput="colorI(this,this.dataset.f)"></td>';
-    html+='<td class="tc"><input type="text" class="ci2'+(clBad?' bad':cl?' ok':'')+'" placeholder="mg/L" value="'+cl+'" inputmode="decimal" data-k="'+kcl+'" data-f="cloro" onchange="sv(this.dataset.k,this.value);colorI(this,this.dataset.f);doSave();" oninput="colorI(this,this.dataset.f)"></td>';
-    html+='<td class="tc"><input type="text" class="ci2" placeholder="°C" value="'+tmp+'" inputmode="decimal" data-k="'+ktmp+'" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
-    html+='<td class="tc"><input type="text" class="ci2" placeholder="Nombre" value="'+tec+'" data-k="'+ktec+'" onchange="sv(this.dataset.k,this.value);doSave()" style="font-size:10px"></td>';
-    html+='</tr>';
-  });
-  html+='</tbody></table>';
-  // Campo firma/observaciones
-  var obsK=mk('afs',date,'obs');
-  html+='<div style="margin-top:10px"><label class="fl">Observaciones del dia</label><input class="fi" style="font-size:12px" placeholder="Incidencias, tratamientos, anomalias..." value="'+gv(obsK).replace(/"/g,'&quot;')+'" data-k="'+obsK+'" onchange="sv(this.dataset.k,this.value);doSave()"></div>';
-  html+='</div></div>';
-  document.getElementById('afsCont').innerHTML=html;
-  document.getElementById('afsTot').textContent=tot;
-  document.getElementById('afsOk').textContent=ok;
-  document.getElementById('afsAlrt').textContent=alrt;
-}
-
-// ═══ CONTROL MENSUAL ACS ══════════════════════════════
-// Grifos para control mensual (rotativos por mes)
-ACS_MENSUAL_GRIFOS=[
+// ── DATOS: 38 GRIFOS ACS SEMANAL ─────────────────
+var ACS_GRIFOS_38=[
   {n:'1',ni:'1',name:'Fuente Agua Calle 17',cod:'46031'},
   {n:'2',ni:'2',name:'Grifo Departamento Calidad (1)',cod:'46031'},
   {n:'3',ni:'3',name:'Grifo Departamento Calidad (2)',cod:'46031'},
   {n:'4',ni:'4',name:'Grifo Departamento Calidad (3)',cod:'46031'},
   {n:'5',ni:'5',name:'Grifo Aseo Camara',cod:'46035'},
   {n:'6',ni:'6',name:'Grifo Fuente Transportes',cod:'46035'},
-  {n:'7',ni:'7',name:'Grifo Pila Sala de Bateria',cod:'46035'},
+  {n:'7',ni:'7',name:'Grifo Pila Sala Bateria',cod:'46035'},
   {n:'8',ni:'8',name:'Grifo Aseo WC Seco',cod:'46035'},
   {n:'9',ni:'9',name:'Grifo Vestuarios Hombres (1)',cod:'46041'},
   {n:'10',ni:'10',name:'Grifo Vestuarios Hombres (2)',cod:'46041'},
@@ -3392,7 +2581,7 @@ ACS_MENSUAL_GRIFOS=[
   {n:'16',ni:'16',name:'Grifos Vestuarios Mujeres (1)',cod:'46055'},
   {n:'17',ni:'17',name:'Grifos Vestuarios Mujeres (2)',cod:'46062'},
   {n:'18',ni:'18',name:'Grifos Vestuarios Mujeres (3)',cod:'46062'},
-  {n:'19',ni:'19',name:'Grifo Patio Zona Cuba Palet',cod:'46062'},
+  {n:'19',ni:'19',name:'Grifo Patio Cuba Palet',cod:'46062'},
   {n:'20',ni:'20',name:'Grifo Fuente Muelle Seco',cod:'46062'},
   {n:'21',ni:'21',name:'Grifo Comedor Oficina',cod:'46069'},
   {n:'22',ni:'22',name:'Grifo Comedor Mozo',cod:'46069'},
@@ -3410,60 +2599,452 @@ ACS_MENSUAL_GRIFOS=[
   {n:'37',ni:'37',name:'Ducha Vestuarios Masculino (8)',cod:'46090'},
   {n:'38',ni:'38',name:'Ducha Vestuarios Femenino',cod:'46090'},
 ];
-ACS_DEPOSITOS=[
-  {n:'39',name:'Deposito principal'},
-  {n:'28D',name:'Box Lavado de Isotermos'}
-];
-acsMensualMo=new Date().getMonth();
-var acsMensualYr2=new Date().getFullYear();
 
+// ── DATOS: GRIFOS MENSUALES ROTATIVOS POR MES ────
+// Cada mes tiene grifos distintos asignados
+var ACS_MENSUAL_POR_MES={
+  0:[{n:'1',ni:'1',name:'Fuente Agua Calle 17',cod:'46035'},{n:'2',ni:'2',name:'Grifo Depto Calidad (1)',cod:'46035'},{n:'3',ni:'3',name:'Grifo Depto Calidad (2)',cod:'46035'},{n:'4',ni:'4',name:'Grifo Depto Calidad (3)',cod:'46035'}],
+  1:[{n:'5',ni:'5',name:'Grifo Aseo Camara',cod:'46055'},{n:'6',ni:'6',name:'Grifo Fuente Transportes',cod:'46055'},{n:'7',ni:'7',name:'Grifo Pila Sala Bateria',cod:'46055'},{n:'8',ni:'8',name:'Grifo Aseo WC Seco',cod:'46055'}],
+  2:[{n:'9',ni:'9',name:'Grifo Vestuarios Hombres (1)',cod:'46083'},{n:'10',ni:'10',name:'Grifo Vestuarios Hombres (2)',cod:'46083'},{n:'11',ni:'11',name:'Grifo Vestuarios Hombres (3)',cod:'46083'},{n:'12',ni:'12',name:'Grifo Vestuarios Hombres (4)',cod:'46083'}],
+  3:[{n:'13',ni:'13',name:'Grifo Aseo WC Transportes',cod:'46118'},{n:'14A',ni:'14A',name:'Grifo Aseo Femenino Of.1',cod:'46118'},{n:'14B',ni:'14B',name:'Grifo Aseo Femenino Of.2',cod:'46118'}],
+  4:[{n:'14C',ni:'14C',name:'Grifo Aseo Femenino Of.3',cod:'46146'},{n:'15A',ni:'15A',name:'Grifo Aseo Masculino Of.1',cod:'46146'},{n:'15B',ni:'15B',name:'Grifo Aseo Masculino Of.2',cod:'46146'}],
+  5:[{n:'15C',ni:'15C',name:'Grifo Aseo Masculino Of.3',cod:'46174'},{n:'16',ni:'16',name:'Vestuarios Mujeres (1)',cod:'46174'},{n:'17',ni:'17',name:'Vestuarios Mujeres (2)',cod:'46174'}],
+  6:[{n:'18',ni:'18',name:'Vestuarios Mujeres (3)',cod:'46204'},{n:'19',ni:'19',name:'Grifo Patio Cuba Palet',cod:'46204'},{n:'20',ni:'20',name:'Grifo Fuente Muelle Seco',cod:'46204'}],
+  7:[{n:'21',ni:'21',name:'Grifo Comedor Oficina',cod:'46237'},{n:'22',ni:'22',name:'Grifo Comedor Mozo',cod:'46237'},{n:'24',ni:'24',name:'Grifo Fuente Muelle Fruta',cod:'46237'}],
+  8:[{n:'26',ni:'26',name:'Grifo Armario Placas',cod:'46266'},{n:'28',ni:'28',name:'Grifo Hidrolimpiadora',cod:'46266'},{n:'29',ni:'29',name:'Grifo Cuba Organica',cod:'46266'}],
+  9:[{n:'30',ni:'30',name:'Ducha Vestuarios Masc.(1)',cod:'46296'},{n:'31',ni:'31',name:'Ducha Vestuarios Masc.(2)',cod:'46296'},{n:'32',ni:'32',name:'Ducha Vestuarios Masc.(3)',cod:'46296'}],
+  10:[{n:'33',ni:'33',name:'Ducha Vestuarios Masc.(4)',cod:'46328'},{n:'34',ni:'34',name:'Ducha Vestuarios Masc.(5)',cod:'46328'},{n:'35',ni:'35',name:'Ducha Vestuarios Masc.(6)',cod:'46328'}],
+  11:[{n:'36',ni:'36',name:'Ducha Vestuarios Masc.(7)',cod:'46357'},{n:'37',ni:'37',name:'Ducha Vestuarios Masc.(8)',cod:'46357'},{n:'38',ni:'38',name:'Ducha Vestuarios Femenino',cod:'46357'},{n:'28D',ni:'28',name:'Box Lavado Isotermos',cod:'46357'}],
+};
+
+// ── DATOS: DEPÓSITOS MENSUALES ────────────────────
+var DEPOSITOS=[
+  {n:'39',name:'Deposito Contraincendios'},
+  {n:'28',name:'Box Lavado de Isotermos'},
+];
+
+// ── ACS SEMANAL — renderizar con 38 grifos ────────
+// Sobreescribir renderACS para usar los 38 grifos con Turbidez AF/AC/Apertura
+function renderACS(){
+  var wk=typeof acsWk!=='undefined'?acsWk:isoWk(new Date());
+  var tec=gv('__tecnico')||'';var dni=gv('__tecnicoDNI')||'';
+  var html='<div style="overflow-x:auto"><table class="dt" style="min-width:580px">';
+  html+='<thead><tr><th>Nr</th><th>Cod.</th><th>GRIFO / PUNTO</th>';
+  html+='<th class="tc">TURBIDEZ<br>A.FRIA (NTU)</th>';
+  html+='<th class="tc">TURBIDEZ<br>A.CALIENTE (NTU)</th>';
+  html+='<th class="tc">APERTURA<br>GRIFO NO USADO</th>';
+  html+='<th class="tc">TECNICO</th></tr></thead><tbody>';
+  ACS_GRIFOS_38.forEach(function(g){
+    var ktf=mk('acs_s',wk,g.n,'turbAF');
+    var ktc2=mk('acs_s',wk,g.n,'turbAC');
+    var kap=mk('acs_s',wk,g.n,'ap');
+    var ktec=mk('acs_s',wk,g.n,'tec');
+    var vTurbAF=gv(ktf);var vTurbAC=gv(ktc2);var vAp=gv(kap);var vTec=gv(ktec)||tec;
+    html+='<tr>';
+    html+='<td><b>'+g.ni+'</b></td>';
+    html+='<td style="font-size:9px;color:var(--text3)">'+g.cod+'</td>';
+    html+='<td style="font-size:11px;font-weight:600">'+g.name+'</td>';
+    html+='<td class="tc"><input type="text" class="ci2" placeholder="NTU" value="'+vTurbAF+'" inputmode="decimal" data-k="'+ktf+'" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+    html+='<td class="tc"><input type="text" class="ci2" placeholder="NTU" value="'+vTurbAC+'" inputmode="decimal" data-k="'+ktc2+'" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+    html+='<td class="tc"><select class="ci2" data-k="'+kap+'" onchange="sv(this.dataset.k,this.value);doSave()"><option value="">—</option><option value="SI"'+(vAp==='SI'?' selected':'')+'>SI</option><option value="NO"'+(vAp==='NO'?' selected':'')+'>NO</option><option value="N/A"'+(vAp==='N/A'?' selected':'')+'>N/A</option></select></td>';
+    html+='<td class="tc"><input type="text" class="ci2" placeholder="Tecnico" value="'+vTec+'" data-k="'+ktec+'" style="font-size:9px" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  // Semana label
+  var swkEl=document.getElementById('acsWkLbl')||document.getElementById('acsWLbl');
+  if(typeof weekLbl==='function'&&swkEl)swkEl.textContent=weekLbl(wk);
+  var cont=document.getElementById('acsCont')||document.getElementById('acsContent');
+  if(cont)cont.innerHTML=html;
+}
+
+// ── ACS MENSUAL — grifos rotativos por mes ────────
+var acsmMo=new Date().getMonth();var acsmYr=new Date().getFullYear();
 function initACSMensual(){
-  var sel=document.getElementById('acsMensualMes');
-  if(sel&&!sel.options.length){MOS.forEach(function(m,i){var o=document.createElement('option');o.value=i;o.textContent=m;sel.appendChild(o);});sel.value=acsMensualMo;}
-  var yr=document.getElementById('acsMensualYr');if(yr)yr.value=acsMensualYr2;
+  var sel=document.getElementById('acsmMes');
+  if(sel&&!sel.options.length){
+    var MN=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    MN.forEach(function(m,i){var o=document.createElement('option');o.value=i;o.textContent=m;sel.appendChild(o);});
+    sel.value=acsmMo;
+  }
+  var yr=document.getElementById('acsmYr');if(yr)yr.value=acsmYr;
+  var t=document.getElementById('acsmTec');if(t)t.value=gv('__tecnico')||'';
+  var d=document.getElementById('acsmDNI');if(d)d.value=gv('__tecnicoDNI')||'';
 }
 function renderACSMensual(){
-  var selMo=document.getElementById('acsMensualMes');
-  var selYr=document.getElementById('acsMensualYr');
-  if(selMo)acsMensualMo=parseInt(selMo.value);
-  if(selYr)acsMensualYr2=parseInt(selYr.value)||new Date().getFullYear();
-  var mo=acsMensualMo;var yr=acsMensualYr2;
-  var mesKey=yr+'_'+String(mo+1).padStart(2,'0');
-  var html='<div style="overflow-x:auto"><table class="dt" style="min-width:600px">';
-  html+='<thead><tr><th>Nr</th><th>Cod.</th><th>GRIFO</th><th class="tc">CLORO<br><small>mg/L</small></th><th class="tc">pH</th><th class="tc">CONSERVACION</th><th class="tc">T.CALIENTE<br><small>°C ≥50</small></th><th class="tc">T.FRIA<br><small>°C</small></th></tr></thead><tbody>';
-  ACS_MENSUAL_GRIFOS.forEach(function(g){
+  var selMo=document.getElementById('acsmMes');
+  var selYr=document.getElementById('acsmYr');
+  if(selMo)acsmMo=parseInt(selMo.value);
+  if(selYr)acsmYr=parseInt(selYr.value)||new Date().getFullYear();
+  var mesKey=acsmYr+'_'+String(acsmMo+1).padStart(2,'0');
+  var grifos=ACS_MENSUAL_POR_MES[acsmMo]||[];
+  var html='<div style="font-size:11px;color:var(--text3);margin-bottom:8px">Grifos asignados para este mes: <b>'+grifos.length+' puntos de control</b></div>';
+  html+='<div style="overflow-x:auto"><table class="dt" style="min-width:560px">';
+  html+='<thead><tr><th>Nr</th><th>Cod.</th><th>GRIFO</th>';
+  html+='<th class="tc">CLORO<br>(mg/L)</th><th class="tc">pH</th>';
+  html+='<th class="tc">CONSERVACION</th>';
+  html+='<th class="tc">T.CALIENTE<br>(°C ≥50)</th>';
+  html+='<th class="tc">T.FRIA<br>(°C)</th></tr></thead><tbody>';
+  grifos.forEach(function(g){
     var base=mk('acsm',mesKey,g.n);
     var cl=gv(base+'_cl');var ph=gv(base+'_ph');var cons=gv(base+'_cons');var tc=gv(base+'_tc');var tf=gv(base+'_tf');
     var tcN=parseFloat(tc);var tcBad=tc&&tcN<50;
     html+='<tr>';
-    html+='<td><b>'+g.ni+'</b></td><td style="font-size:9px;color:var(--text3)">'+g.cod+'</td><td style="font-size:11px">'+g.name+'</td>';
-    html+='<td class="tc"><input type="text" class="ci2" placeholder="" value="'+cl+'" inputmode="decimal" data-k="'+base+'_cl" data-f="cloro" onchange="sv(this.dataset.k,this.value);colorI(this,this.dataset.f);doSave();" oninput="colorI(this,this.dataset.f)"></td>';
-    html+='<td class="tc"><input type="text" class="ci2" placeholder="" value="'+ph+'" inputmode="decimal" data-k="'+base+'_ph" data-f="ph" onchange="sv(this.dataset.k,this.value);colorI(this,this.dataset.f);doSave();" oninput="colorI(this,this.dataset.f)"></td>';
+    html+='<td><b>'+g.ni+'</b></td><td style="font-size:9px;color:var(--text3)">'+g.cod+'</td>';
+    html+='<td style="font-size:11px">'+g.name+'</td>';
+    html+='<td class="tc"><input type="text" class="ci2" placeholder="" value="'+cl+'" inputmode="decimal" data-k="'+base+'_cl" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+    html+='<td class="tc"><input type="text" class="ci2" placeholder="" value="'+ph+'" inputmode="decimal" data-k="'+base+'_ph" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
     html+='<td class="tc"><select class="ci2" data-k="'+base+'_cons" onchange="sv(this.dataset.k,this.value);doSave()"><option value="">—</option><option value="OK"'+(cons==='OK'?' selected':'')+'>OK</option><option value="Revisar"'+(cons==='Revisar'?' selected':'')+'>Revisar</option><option value="Limpieza"'+(cons==='Limpieza'?' selected':'')+'>Limpieza</option></select></td>';
-    html+='<td class="tc"><input type="text" class="ci2'+(tcBad?' bad':tc?' ok':'')+'" placeholder="°C" value="'+tc+'" inputmode="decimal" data-k="'+base+'_tc" data-f="temperatura" onchange="sv(this.dataset.k,this.value);colorI(this,this.dataset.f);doSave();" oninput="colorI(this,this.dataset.f)"></td>';
+    html+='<td class="tc"><input type="text" class="ci2'+(tcBad?' bad':tc?' ok':'')+'" placeholder="°C" value="'+tc+'" inputmode="decimal" data-k="'+base+'_tc" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
     html+='<td class="tc"><input type="text" class="ci2" placeholder="°C" value="'+tf+'" inputmode="decimal" data-k="'+base+'_tf" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
     html+='</tr>';
   });
   html+='</tbody></table></div>';
-  document.getElementById('acsMensualCont').innerHTML=html;
-  // Depositos
-  var dHtml='<div style="overflow-x:auto"><table class="dt"><thead><tr><th>Nr</th><th>DEPOSITO</th><th class="tc">CLORO</th><th class="tc">pH</th><th class="tc">TEMP</th></tr></thead><tbody>';
-  ACS_DEPOSITOS.forEach(function(d){
-    var base=mk('acsd',mesKey,d.n);
-    var cl=gv(base+'_cl');var ph=gv(base+'_ph');var tmp=gv(base+'_tmp');
-    dHtml+='<tr><td><b>'+d.n+'</b></td><td style="font-size:11px">'+d.name+'</td>';
-    dHtml+='<td class="tc"><input type="text" class="ci2" placeholder="" value="'+cl+'" inputmode="decimal" data-k="'+base+'_cl" data-f="cloro" onchange="sv(this.dataset.k,this.value);colorI(this,this.dataset.f);doSave();" oninput="colorI(this,this.dataset.f)"></td>';
-    dHtml+='<td class="tc"><input type="text" class="ci2" placeholder="" value="'+ph+'" inputmode="decimal" data-k="'+base+'_ph" data-f="ph" onchange="sv(this.dataset.k,this.value);colorI(this,this.dataset.f);doSave();" oninput="colorI(this,this.dataset.f)"></td>';
-    dHtml+='<td class="tc"><input type="text" class="ci2" placeholder="°C" value="'+tmp+'" inputmode="decimal" data-k="'+base+'_tmp" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
-    dHtml+='</tr>';
-  });
-  dHtml+='</tbody></table></div>';
-  document.getElementById('deposiCont').innerHTML=dHtml;
+  var cont=document.getElementById('acsmCont');if(cont)cont.innerHTML=html;
+  renderDepositos(mesKey);
 }
-function renderDepositos(){renderACSMensual();}
 
+// ── DEPÓSITOS MENSUALES ANUALES ───────────────────
+function renderDepositos(mesKeyOpt){
+  var cont=document.getElementById('deposCont');if(!cont)return;
+  var yr=acsmYr||new Date().getFullYear();
+  var html='<div style="overflow-x:auto"><table class="dt" style="min-width:500px">';
+  html+='<thead><tr><th>MES</th><th>Nr</th><th>DEPÓSITO</th><th class="tc">CLORO (mg/L)</th><th class="tc">pH</th><th class="tc">TEMP (°C)</th><th class="tc">LIMPIEZA BOQUILLA</th></tr></thead><tbody>';
+  var MN=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  // Solo mostrar enero-junio para Nº39, todo el año para Nº28
+  for(var mo=0;mo<12;mo++){
+    var mk2=yr+'_'+String(mo+1).padStart(2,'0');
+    DEPOSITOS.forEach(function(d){
+      // Nº39 solo ene-jun
+      if(d.n==='39'&&mo>=6)return;
+      var base=mk('acsd',mk2,d.n);
+      var cl=gv(base+'_cl');var ph=gv(base+'_ph');var tmp=gv(base+'_tmp');var limpi=gv(base+'_limpi');
+      html+='<tr>';
+      html+='<td style="font-size:10px;font-weight:700;color:var(--blue)">'+MN[mo]+'</td>';
+      html+='<td><b>'+d.n+'</b></td>';
+      html+='<td style="font-size:11px">'+d.name+'</td>';
+      html+='<td class="tc"><input type="text" class="ci2" placeholder="" value="'+cl+'" inputmode="decimal" data-k="'+base+'_cl" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+      html+='<td class="tc"><input type="text" class="ci2" placeholder="" value="'+ph+'" inputmode="decimal" data-k="'+base+'_ph" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+      html+='<td class="tc"><input type="text" class="ci2" placeholder="°C" value="'+tmp+'" inputmode="decimal" data-k="'+base+'_tmp" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+      // Solo Nº28 tiene limpieza boquilla
+      if(d.n==='28'){
+        html+='<td class="tc"><select class="ci2" data-k="'+base+'_limpi" onchange="sv(this.dataset.k,this.value);doSave()"><option value="">—</option><option value="OK"'+(limpi==='OK'?' selected':'')+'>OK</option><option value="Revisar"'+(limpi==='Revisar'?' selected':'')+'>Revisar</option></select></td>';
+      }else{
+        html+='<td class="tc" style="color:var(--text3);font-size:9px">N/A</td>';
+      }
+      html+='</tr>';
+    });
+  }
+  html+='</tbody></table></div>';
+  cont.innerHTML=html;
+}
 
+// ── DIARIO AGUA FRÍA SANITARIA ────────────────────
+var afsDate2=ds(new Date());
+function afsHoy(){afsDate2=ds(new Date());var d=document.getElementById('afsDate');if(d)d.value=afsDate2;renderAFS();}
+function afsPN(n){var d=new Date(afsDate2);d.setDate(d.getDate()+n);afsDate2=ds(d);var el=document.getElementById('afsDate');if(el)el.value=afsDate2;renderAFS();}
+var AFS_PTS=[
+  {n:'40',name:'Deposito Aporte Box Lavado'},
+  {n:'5',name:'Lavabo Aseo Antecamara Congelado'},
+];
+function renderAFS(){
+  var dateEl=document.getElementById('afsDate');
+  if(dateEl&&dateEl.value)afsDate2=dateEl.value;
+  var lbl=document.getElementById('afsDateLbl');
+  if(lbl){try{var d=new Date(afsDate2+'T12:00:00');lbl.textContent=d.toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});}catch(e){lbl.textContent=afsDate2;}}
+  var tec=gv('__tecnico')||'';var dni=gv('__tecnicoDNI')||'';
+  var tecEl=document.getElementById('afsTec');if(tecEl&&!tecEl.value)tecEl.value=tec;
+  var dniEl=document.getElementById('afsDNI');if(dniEl&&!dniEl.value)dniEl.value=dni;
+  var tot=0;var ok=0;var alrt=0;
+  var html='<table class="dt" style="min-width:400px">';
+  html+='<thead><tr><th>Nr</th><th>AGUA FRIA SANITARIA</th>';
+  html+='<th class="tc">pH<br><small>DIARIO</small></th>';
+  html+='<th class="tc">CLORO<br><small>DIARIO mg/L</small></th>';
+  html+='<th class="tc">TEMPERATURA<br><small>SEMANAL DEP.APORTE</small></th>';
+  html+='</tr></thead><tbody>';
+  AFS_PTS.forEach(function(p){
+    var kph=mk('afs',afsDate2,p.n,'ph');
+    var kcl=mk('afs',afsDate2,p.n,'cl');
+    var ktmp=mk('afs',afsDate2,p.n,'tmp');
+    var ph=gv(kph);var cl=gv(kcl);var tmp=gv(ktmp);
+    if(ph||cl)tot++;
+    var phN=parseFloat(ph);var clN=parseFloat(cl);
+    var phBad=ph&&(phN<6.5||phN>9.5);var clBad=cl&&(clN<0.2||clN>1.0);
+    if(phBad||clBad)alrt++;else if(ph||cl)ok++;
+    html+='<tr>';
+    html+='<td><b>'+p.n+'</b></td>';
+    html+='<td style="font-size:11px;font-weight:600">'+p.name+'</td>';
+    html+='<td class="tc"><input type="text" class="ci2'+(phBad?' bad':ph?' ok':'')+'" placeholder="pH" value="'+ph+'" inputmode="decimal" data-k="'+kph+'" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+    html+='<td class="tc"><input type="text" class="ci2'+(clBad?' bad':cl?' ok':'')+'" placeholder="mg/L" value="'+cl+'" inputmode="decimal" data-k="'+kcl+'" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+    // Temperatura solo para Nº40 (depósito aporte)
+    if(p.n==='40'){
+      html+='<td class="tc"><input type="text" class="ci2" placeholder="°C" value="'+tmp+'" inputmode="decimal" data-k="'+ktmp+'" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+    }else{
+      html+='<td class="tc" style="font-size:9px;color:var(--text3)">— semanal —</td>';
+    }
+    html+='</tr>';
+  });
+  // Observaciones
+  var obsK=mk('afs',afsDate2,'obs');
+  html+='</tbody></table>';
+  html+='<div style="margin-top:10px"><label class="fl">Observaciones del dia</label><input class="fi" style="font-size:12px" placeholder="Anotar cualquier incidencia, anomalia o accion correctiva..." value="'+gv(obsK).replace(/"/g,'&quot;')+'" data-k="'+obsK+'" onchange="sv(this.dataset.k,this.value);doSave()"></div>';
+  var cont=document.getElementById('afsCont');if(cont)cont.innerHTML=html;
+  var pct=tot>0?Math.round(ok/tot*100):0;
+  var t=document.getElementById('afsTot');if(t)t.textContent=tot*2;
+  var o=document.getElementById('afsOk');if(o)o.textContent=ok;
+  var al=document.getElementById('afsAlrt');if(al)al.textContent=alrt;
+  var pc=document.getElementById('afsPct');if(pc)pc.textContent=(tot>0?Math.round((ok+alrt)/tot*100):0)+'%';
+}
 
+// ── INTEGRAR EN goTab ─────────────────────────────
+var _origGoTab=goTab;
+goTab=function(id,el){
+  _origGoTab(id,el);
+  if(id==='acsm'){initACSMensual();renderACSMensual();}
+  if(id==='diariobox'){renderAFS();}
+  if(id==='acs'){renderACS();}
+};
+
+// ── INTEGRAR EN initApp ───────────────────────────
+var _origInitApp2=initApp;
+initApp=function(){
+  _origInitApp2();
+  var afsD=document.getElementById('afsDate');if(afsD){afsD.value=ds(new Date());afsDate2=afsD.value;}
+  renderAFS();
+  initACSMensual();renderACSMensual();
+  renderACS();
+};
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════
+// MEJORAS PROFESIONALES v7.0
+// ═══════════════════════════════════════════════════
+
+// ── 1. DARK MODE ─────────────────────────────────
+function toggleDark(){
+  var isDark=document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.setAttribute('data-theme',isDark?'light':'dark');
+  localStorage.setItem('__theme',isDark?'light':'dark');
+  var btn=document.getElementById('btnDark');
+  if(btn)btn.textContent=isDark?'🌙':'☀️';
+}
+function initTheme(){
+  var t=localStorage.getItem('__theme')||'light';
+  document.documentElement.setAttribute('data-theme',t);
+  var btn=document.getElementById('btnDark');
+  if(btn)btn.textContent=t==='dark'?'☀️':'🌙';
+}
+document.addEventListener('DOMContentLoaded',initTheme);
+
+// ── 2. INDEXEDDB — SISTEMA OFFLINE REAL ──────────
+var IDB={db:null,ready:false};
+(function(){
+  var req=indexedDB.open('AquaControlPro',2);
+  req.onupgradeneeded=function(e){
+    var db=e.target.result;
+    if(!db.objectStoreNames.contains('data'))db.createObjectStore('data',{keyPath:'uid'});
+    if(!db.objectStoreNames.contains('queue'))db.createObjectStore('queue',{autoIncrement:true});
+    if(!db.objectStoreNames.contains('audit'))db.createObjectStore('audit',{autoIncrement:true});
+  };
+  req.onsuccess=function(e){IDB.db=e.target.result;IDB.ready=true;console.log('[IDB] Listo');};
+  req.onerror=function(){console.warn('[IDB] Error al abrir');};
+})();
+function idbSave(uid,data){
+  if(!IDB.ready)return;
+  var tx=IDB.db.transaction('data','readwrite');
+  tx.objectStore('data').put({uid:uid,data:data,ts:Date.now()});
+}
+function idbLoad(uid,cb){
+  if(!IDB.ready){cb(null);return;}
+  var tx=IDB.db.transaction('data','readonly');
+  var req=tx.objectStore('data').get(uid);
+  req.onsuccess=function(e){cb(e.target.result?e.target.result.data:null);};
+  req.onerror=function(){cb(null);};
+}
+function idbQueueAdd(item){
+  if(!IDB.ready)return;
+  var tx=IDB.db.transaction('queue','readwrite');
+  tx.objectStore('queue').add({item:item,ts:Date.now()});
+}
+
+// ── 3. AUDITORÍA DE ACCIONES ─────────────────────
+var AUDIT_LOG=[];
+function auditLog(action,detail){
+  var entry={
+    action:action,
+    detail:detail||'',
+    user:typeof co!=='undefined'&&co?co.email:'—',
+    ts:new Date().toISOString(),
+    time:new Date().toLocaleString('es-ES')
+  };
+  AUDIT_LOG.unshift(entry);
+  if(AUDIT_LOG.length>500)AUDIT_LOG=AUDIT_LOG.slice(0,500);
+  try{localStorage.setItem('__audit',JSON.stringify(AUDIT_LOG.slice(0,100)));}catch(e){}
+  // Guardar también en IndexedDB
+  if(IDB.ready){
+    var tx=IDB.db.transaction('audit','readwrite');
+    tx.objectStore('audit').add(entry);
+  }
+}
+function loadAuditLog(){
+  try{var s=localStorage.getItem('__audit');if(s)AUDIT_LOG=JSON.parse(s);}catch(e){}
+}
+
+// ── 4. TOAST MEJORADO CON TIPOS ──────────────────
+function toast(msg,type){
+  var t=document.getElementById('toast');
+  if(!t)return;
+  t.textContent=msg;
+  t.className='on '+(type||'');
+  clearTimeout(t._t);
+  t._t=setTimeout(function(){t.className='';},type==='error'?4000:2500);
+}
+
+// ── 5. OFFLINE DETECTION ─────────────────────────
+function updateOnlineStatus(){
+  var badge=document.getElementById('offlineBadge');
+  if(badge)badge.classList.toggle('on',!navigator.onLine);
+  if(navigator.onLine)syncPendingQueue();
+}
+window.addEventListener('online',updateOnlineStatus);
+window.addEventListener('offline',updateOnlineStatus);
+function syncPendingQueue(){
+  if(!IDB.ready)return;
+  var tx=IDB.db.transaction('queue','readwrite');
+  var store=tx.objectStore('queue');
+  var req=store.getAll();
+  req.onsuccess=function(e){
+    var items=e.target.result||[];
+    if(items.length>0){
+      console.log('[SYNC] Sincronizando',items.length,'elementos pendientes');
+      store.clear();
+      toast('☁️ '+items.length+' registros sincronizados','success');
+    }
+  };
+}
+
+// ── 6. DOCSAVE MEJORADO CON AUDITORÍA E IDB ──────
+// Override doSave para añadir auditoría e IndexedDB
+var _origDoSave=null;
+function patchDoSave(){
+  if(typeof doSave!=='function')return;
+  _origDoSave=doSave;
+  doSave=function(){
+    _origDoSave();
+    // Guardar en IndexedDB como backup offline
+    if(typeof co!=='undefined'&&co&&typeof DATA!=='undefined'){
+      idbSave(co.uid||co.code,DATA);
+    }
+    // Si está offline, añadir a cola
+    if(!navigator.onLine){
+      idbQueueAdd({type:'save',ts:Date.now()});
+      toast('💾 Guardado localmente (sin conexión)','warn');
+    }
+  };
+}
+
+// ── 7. QR DE VALIDACIÓN ──────────────────────────
+function generateQR(text){
+  // QR usando API gratuita
+  var size=150;
+  var url='https://api.qrserver.com/v1/create-qr-code/?size='+size+'x'+size+'&data='+encodeURIComponent(text);
+  return '<img src="'+url+'" width="'+size+'" height="'+size+'" alt="QR Validación" style="border:1px solid #e2e8f0;border-radius:8px;">';
+}
+function showQRValidacion(){
+  var now=new Date();
+  var tec=typeof gv==='function'?gv('__tecnico'):'—';
+  var empresa=typeof co!=='undefined'&&co?co.name:'AquaControl Pro';
+  var qrData='AQUAPRO|'+empresa+'|'+tec+'|'+now.toLocaleString('es-ES')+'|VALID';
+  var modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML='<div style="background:var(--surface);border-radius:16px;padding:24px;text-align:center;max-width:280px;">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:12px">🔲 QR de Validación</div>'
+    +generateQR(qrData)
+    +'<div style="font-size:10px;color:var(--text3);margin-top:8px">'+empresa+' · '+tec+'</div>'
+    +'<div style="font-size:9px;color:var(--text3)">'+now.toLocaleString('es-ES')+'</div>'
+    +'<button onclick="this.parentElement.parentElement.remove()" style="margin-top:14px;padding:8px 20px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Cerrar</button>'
+    +'</div>';
+  document.body.appendChild(modal);
+  auditLog('QR_GENERADO','Validación QR generada');
+}
+
+// ── 8. ROLES DE USUARIO ──────────────────────────
+var USER_ROLE='tecnico'; // admin | supervisor | tecnico | lectura
+var ROLES={
+  admin:{canEdit:true,canDelete:true,canExport:true,canConfig:true,canViewAll:true},
+  supervisor:{canEdit:true,canDelete:false,canExport:true,canConfig:false,canViewAll:true},
+  tecnico:{canEdit:true,canDelete:false,canExport:true,canConfig:false,canViewAll:false},
+  lectura:{canEdit:false,canDelete:false,canExport:true,canConfig:false,canViewAll:false}
+};
+function canDo(action){
+  var role=ROLES[USER_ROLE]||ROLES['tecnico'];
+  return role[action]===true;
+}
+function loadUserRole(){
+  if(typeof gv==='function'){
+    var r=gv('__userRole');
+    if(r&&ROLES[r])USER_ROLE=r;
+  }
+}
+
+// ── 9. AÑADIR QR AL MENÚ ─────────────────────────
+function addQRToMenu(){
+  var omenu=document.getElementById('omenu');
+  if(!omenu||document.getElementById('btnQRMenu'))return;
+  var item=document.createElement('div');
+  item.className='omi';item.id='btnQRMenu';
+  item.innerHTML='🔲 QR Validación';
+  item.onclick=function(){document.getElementById('omenu').classList.remove('on');showQRValidacion();};
+  // Insertar antes de "Cerrar sesión"
+  var items=omenu.querySelectorAll('.omi');
+  var lastItem=items[items.length-1];
+  omenu.insertBefore(item,lastItem);
+}
+
+// ── 10. INTEGRACIÓN CON initApp ──────────────────
+var _origIA3=null;
+function patchInitApp(){
+  if(typeof initApp!=='function')return;
+  _origIA3=initApp;
+  initApp=function(){
+    _origIA3();
+    initTheme();
+    loadAuditLog();
+    loadUserRole();
+    patchDoSave();
+    updateOnlineStatus();
+    addQRToMenu();
+    auditLog('LOGIN','Usuario accedió al sistema');
+  };
+}
+
+// Intentar parchear cuando Firebase esté listo
+var _patchInterval=setInterval(function(){
+  if(typeof initApp==='function'&&typeof doSave==='function'){
+    clearInterval(_patchInterval);
+    patchInitApp();
+  }
+},200);
+
+// ── 11. AÑADIR SECCIÓN AUDITORÍA EN CONFIG ────────
+function renderAuditSection(){
+  var el=document.getElementById('auditSection');
+  if(!el)return;
+  loadAuditLog();
+  if(!AUDIT_LOG.length){el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px">Sin acciones registradas</div>';return;}
+  el.innerHTML='<div style="overflow-y:auto;max-height:300px">'
+    +AUDIT_LOG.slice(0,50).map(function(a){
+      return '<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:11px">'
+        +'<div style="color:var(--text3);white-space:nowrap;font-family:monospace;font-size:9px">'+a.time+'</div>'
+        +'<div style="flex:1"><span style="font-weight:700">'+a.action+'</span>'+(a.detail?' · '+a.detail:'')+'</div>'
+        +'</div>';
+    }).join('')
+    +'</div>';
+}
+</script>
+
+<script>
 
 // ═══════════════════════════════════════════════════════════════
 // MEJORAS v4.0 — AquaControlPro
@@ -3578,7 +3159,7 @@ function renderAnalytics(){
 }
 
 // ── RECORDATORIOS ──────────────────────────────────────────────
-REMINDERS=[
+const REMINDERS=[
   {icon:'🌡️',title:'Control diario condensadores',sub:'Biocidad · Temperatura · pH · Turbidez',freq:1,key:'cond_daily'},
   {icon:'🏊',title:'Análisis piscina (mañana)',sub:'Cloro · pH · Temperatura · Turbidez',freq:1,key:'pisc_morning'},
   {icon:'💧',title:'Control semanal ACS',sub:'Grifos y agua caliente sanitaria',freq:7,key:'acs_weekly'},
@@ -3611,7 +3192,7 @@ function markReminderDone(key){
 }
 
 // ── NOTIFICACIONES PUSH ────────────────────────────────────────
-pushGranted=false;
+let pushGranted=false;
 function requestPushPermission(){
   const msg=document.getElementById('pushMsg');const btn=document.getElementById('btnPush');
   if(!('Notification' in window)){if(msg)msg.textContent='⚠️ Tu navegador no soporta notificaciones push';return;}
