@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0a1628">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AquaPro">
 <title>AquaControl Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -11,7 +16,25 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:Sora,sans-serif;background:#f0f4f8;color:#1a2332;overscroll-behavior:none}
-:root{--blue:#2589c7;--teal:#0d8a7a;--navy:#0a1628;--green:#1a7a4a;--red:#c0392b;--amber:#c97b00;--border:#e2e8f0;--surf:#fff;--surf2:#f7f9fc;--safe:env(safe-area-inset-bottom,0px)}
+:root{--blue:#2589c7;--teal:#0d8a7a;--navy:#0a1628;--green:#1a7a4a;--red:#c0392b;--amber:#c97b00;--border:#e2e8f0;--surf:#fff;--surf2:#f7f9fc;--txt:#1a2332;--txt2:#4a5568;--txt3:#8899aa;--safe:env(safe-area-inset-bottom,0px)}
+[data-dark]{--border:#30363d;--surf:#161b22;--surf2:#1c2128;--txt:#e6edf3;--txt2:#8b949e;--txt3:#6e7681;background:#0d1117}
+[data-dark] body{background:#0d1117;color:#e6edf3}
+[data-dark] .ci2{background:#1c2128;color:#e6edf3;border-color:#30363d}
+[data-dark] .fi{background:#1c2128;color:#e6edf3;border-color:#30363d}
+[data-dark] .tbl th{background:#1c2128;color:#8b949e}
+[data-dark] .tbl td{color:#e6edf3;border-color:#30363d}
+[data-dark] .card{background:#161b22;border-color:#30363d}
+[data-dark] .card-h{background:#161b22}
+[data-dark] .kcard{background:#161b22;border-color:#30363d}
+[data-dark] .kval{color:inherit}
+[data-dark] .sc{background:#161b22;border-color:#30363d}
+[data-dark] .cfgs{background:#161b22;border-color:#30363d}
+[data-dark] .inc-c{background:#161b22;border-color:#30363d}
+[data-dark] #omenu{background:#161b22;border-color:#30363d}
+[data-dark] .omi{color:#e6edf3;border-color:#30363d}
+[data-dark] .omi.red{color:#f87171}
+[data-dark] .pill{background:#1c2128;border-color:#30363d;color:#8b949e}
+[data-dark] .pill.on{background:var(--blue);color:#fff}
 /* LOGIN */
 #login{position:fixed;inset:0;z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#0a1628,#0d2847 55%,#0a3d2e);padding:20px}
 .l-logo{width:80px;height:80px;border-radius:22px;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;font-size:38px;margin-bottom:14px;box-shadow:0 8px 28px rgba(37,137,199,.4)}
@@ -38,9 +61,9 @@ body{font-family:Sora,sans-serif;background:#f0f4f8;color:#1a2332;overscroll-beh
 .hdr-save{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:7px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer}
 .hdr-more{background:none;border:none;color:rgba(255,255,255,.55);font-size:20px;cursor:pointer;line-height:1;padding:2px 4px}
 /* NAV */
-#nav{display:none;position:fixed;bottom:0;left:0;right:0;height:calc(64px + var(--safe));padding-bottom:var(--safe);background:var(--navy);border-top:1px solid rgba(255,255,255,.08);z-index:100;justify-content:space-around;align-items:center}
+#nav{display:none;position:fixed;bottom:0;left:0;right:0;height:calc(64px + var(--safe));padding-bottom:var(--safe);background:var(--navy);border-top:1px solid rgba(255,255,255,.08);z-index:100;align-items:center;overflow-x:auto;scrollbar-width:none}
 @media(max-width:900px){#nav{display:flex}}
-.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:7px 2px;color:rgba(255,255,255,.3)}
+.ni{flex-shrink:0;min-width:60px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:7px 4px;color:rgba(255,255,255,.3)}
 .ni.on{color:#fff}
 .ni-ico{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
 .ni.on .ni-ico{background:rgba(255,255,255,.12)}
@@ -159,9 +182,11 @@ body{font-family:Sora,sans-serif;background:#f0f4f8;color:#1a2332;overscroll-beh
     <div style="flex:1;min-width:0">
       <div class="hdr-name" id="hName">AquaControl Pro</div>
       <div class="hdr-sub" id="hSub">v10.0</div>
+      <div id="roleBadge" style="display:none;font-size:8px;padding:1px 6px;border-radius:8px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.5);margin-top:1px"></div>
     </div>
     <div class="sync" id="syncPill">—</div>
     <div class="hdr-clk" id="clk"></div>
+    <button class="hdr-save" onclick="toggleDark()" id="btnDark" title="Modo oscuro">🌙</button>
     <button class="hdr-save" onclick="doSave()">💾</button>
     <button class="hdr-more" onclick="toggleMenu()">⋮</button>
   </div>
@@ -171,6 +196,7 @@ body{font-family:Sora,sans-serif;background:#f0f4f8;color:#1a2332;overscroll-beh
     <div class="omi" onclick="cm();genPDF()">📄 Informe PDF</div>
     <div class="omi" onclick="cm();exportExcel()">📊 Exportar Excel</div>
     <div class="omi" onclick="cm();sendEmail()">✉️ Enviar informe</div>
+    <div class="omi" id="btnInstall" onclick="installPWA()" style="display:none">📲 Instalar app</div>
     <div class="omi red" onclick="cm();doLogout()">🚪 Cerrar sesión</div>
   </div>
 
@@ -282,6 +308,24 @@ body{font-family:Sora,sans-serif;background:#f0f4f8;color:#1a2332;overscroll-beh
         <div id="cfgSync" style="font-size:12px;font-weight:600;color:#4a5568">—</div>
         <div style="font-size:11px;color:#8899aa;margin-top:6px">Email: <span id="cfgUser">—</span></div>
       </div>
+      <div class="cfgs">
+        <div class="cfgt">🔐 ROL DE USUARIO</div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px" id="roleGrid"></div>
+      </div>
+      <div class="cfgs">
+        <div class="cfgt">📋 AUDITORÍA DE ACCIONES</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-size:11px;color:#8899aa">Últimas acciones del sistema</span>
+          <button class="btn bs" style="font-size:10px;padding:4px 8px" onclick="renderAudit()">🔄</button>
+        </div>
+        <div id="auditList" style="max-height:200px;overflow-y:auto"></div>
+      </div>
+      <div class="cfgs">
+        <div class="cfgt">📲 INSTALACIÓN APP</div>
+        <div style="font-size:12px;color:#4a5568;margin-bottom:10px;line-height:1.6">Instala AquaControl Pro como app nativa en tu dispositivo para acceso rápido sin navegador.</div>
+        <button class="btn bp" style="width:100%" onclick="installPWA()">📲 Instalar en este dispositivo</button>
+        <div style="font-size:10px;color:#8899aa;margin-top:8px;text-align:center">O toca los 3 puntos del navegador → Añadir a pantalla de inicio</div>
+      </div>
     </div>
   </div>
 
@@ -292,6 +336,9 @@ body{font-family:Sora,sans-serif;background:#f0f4f8;color:#1a2332;overscroll-beh
     <div class="ni" data-tab="p" onclick="goTab('p',this)"><div class="ni-ico">🏊</div><span class="ni-lbl">Piscinas</span></div>
     <div class="ni" data-tab="a" onclick="goTab('a',this)"><div class="ni-ico">🚿</div><span class="ni-lbl">ACS</span></div>
     <div class="ni" data-tab="chk" onclick="goTab('chk',this)"><div class="ni-ico">✅</div><span class="ni-lbl">Checks</span></div>
+    <div class="ni" data-tab="acsm" onclick="goTab('acsm',this)"><div class="ni-ico">📋</div><span class="ni-lbl">ACS Men.</span></div>
+    <div class="ni" data-tab="afs" onclick="goTab('afs',this)"><div class="ni-ico">🚰</div><span class="ni-lbl">Diario</span></div>
+    <div class="ni" data-tab="pot" onclick="goTab('pot',this)"><div class="ni-ico">💧</div><span class="ni-lbl">Potable</span></div>
     <div class="ni" data-tab="cfg" onclick="goTab('cfg',this)"><div class="ni-ico">⚙️</div><span class="ni-lbl">Config</span></div>
   </nav>
   <button id="fab" onclick="doSave()">💾</button>
@@ -609,6 +656,362 @@ function sendEmail(){
   window.open('mailto:?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body));
   toast('Abriendo correo...');
 }
+// ══ ACS MENSUAL — 38 GRIFOS ROTATIVOS POR MES ══
+var ACS38=[
+  {n:'1',ni:'1',name:'Fuente Agua Calle 17'},
+  {n:'2',ni:'2',name:'Grifo Depto. Calidad (1)'},
+  {n:'3',ni:'3',name:'Grifo Depto. Calidad (2)'},
+  {n:'4',ni:'4',name:'Grifo Depto. Calidad (3)'},
+  {n:'5',ni:'5',name:'Grifo Aseo Camara'},
+  {n:'6',ni:'6',name:'Grifo Fuente Transportes'},
+  {n:'7',ni:'7',name:'Grifo Pila Sala Bateria'},
+  {n:'8',ni:'8',name:'Grifo Aseo WC Seco'},
+  {n:'9',ni:'9',name:'Grifo Vestuarios Hombres (1)'},
+  {n:'10',ni:'10',name:'Grifo Vestuarios Hombres (2)'},
+  {n:'11',ni:'11',name:'Grifo Vestuarios Hombres (3)'},
+  {n:'12',ni:'12',name:'Grifo Vestuarios Hombres (4)'},
+  {n:'13',ni:'13',name:'Grifo Aseo WC Transportes'},
+  {n:'14A',ni:'14A',name:'Grifo Aseo Femenino Of.1'},
+  {n:'14B',ni:'14B',name:'Grifo Aseo Femenino Of.2'},
+  {n:'14C',ni:'14C',name:'Grifo Aseo Femenino Of.3'},
+  {n:'15A',ni:'15A',name:'Grifo Aseo Masculino Of.1'},
+  {n:'15B',ni:'15B',name:'Grifo Aseo Masculino Of.2'},
+  {n:'15C',ni:'15C',name:'Grifo Aseo Masculino Of.3'},
+  {n:'16',ni:'16',name:'Vestuarios Mujeres (1)'},
+  {n:'17',ni:'17',name:'Vestuarios Mujeres (2)'},
+  {n:'18',ni:'18',name:'Vestuarios Mujeres (3)'},
+  {n:'19',ni:'19',name:'Grifo Patio Cuba Palet'},
+  {n:'20',ni:'20',name:'Grifo Fuente Muelle Seco'},
+  {n:'21',ni:'21',name:'Grifo Comedor Oficina'},
+  {n:'22',ni:'22',name:'Grifo Comedor Mozo'},
+  {n:'24',ni:'24',name:'Grifo Fuente Muelle Fruta'},
+  {n:'26',ni:'26',name:'Grifo Armario Placas'},
+  {n:'28',ni:'28',name:'Grifo Hidrolimpiadora'},
+  {n:'29',ni:'29',name:'Grifo Cuba Organica'},
+  {n:'30',ni:'30',name:'Ducha Vestuarios Masc.(1)'},
+  {n:'31',ni:'31',name:'Ducha Vestuarios Masc.(2)'},
+  {n:'32',ni:'32',name:'Ducha Vestuarios Masc.(3)'},
+  {n:'33',ni:'33',name:'Ducha Vestuarios Masc.(4)'},
+  {n:'34',ni:'34',name:'Ducha Vestuarios Masc.(5)'},
+  {n:'35',ni:'35',name:'Ducha Vestuarios Masc.(6)'},
+  {n:'36',ni:'36',name:'Ducha Vestuarios Masc.(7)'},
+  {n:'37',ni:'37',name:'Ducha Vestuarios Masc.(8)'},
+  {n:'38',ni:'38',name:'Ducha Vestuarios Femenino'}
+];
+// Grifos asignados por mes (rotativos segun Excel)
+var ACS_MES={
+  0:[0,1,2,3],1:[4,5,6,7],2:[8,9,10,11],3:[12,13,14],
+  4:[15,16,17],5:[18,19,20],6:[21,22,23],7:[24,25,26],
+  8:[27,28,29],9:[30,31,32],10:[33,34,35],11:[36,37,38,27]
+};
+var DEPOSITOS=[{n:'39',name:'Deposito Contraincendios'},{n:'28D',name:'Box Lavado Isotermos'}];
+var acsmMo=new Date().getMonth(),acsmYr=new Date().getFullYear();
+
+function initACSM(){
+  var sel=document.getElementById('acsmMes');
+  if(sel&&!sel.options.length){
+    MOS.forEach(function(m,i){var o=document.createElement('option');o.value=i;o.textContent=m;sel.appendChild(o);});
+    sel.value=acsmMo;
+  }
+  var yr=document.getElementById('acsmYr');if(yr)yr.value=acsmYr;
+  var t=document.getElementById('acsmTec');if(t&&!t.value)t.value=gv('__tec')||'';
+  var d=document.getElementById('acsmDNI');if(d&&!d.value)d.value=gv('__dni')||'';
+}
+function renderACSM(){
+  var sel=document.getElementById('acsmMes');var yr2=document.getElementById('acsmYr');
+  if(sel)acsmMo=parseInt(sel.value);
+  if(yr2)acsmYr=parseInt(yr2.value)||new Date().getFullYear();
+  var mk2=acsmYr+'_'+String(acsmMo+1).padStart(2,'0');
+  var idxs=ACS_MES[acsmMo]||[];
+  var html='<div style="background:rgba(37,137,199,.08);border-radius:8px;padding:8px 12px;font-size:11px;font-weight:600;color:var(--blue);margin-bottom:10px">'+idxs.length+' grifos para '+MOS[acsmMo]+' '+acsmYr+'</div>';
+  html+='<div style="overflow-x:auto"><table class="tbl" style="min-width:520px"><thead><tr>';
+  html+='<th>Nr</th><th>GRIFO</th><th class="tc">CLORO mg/L</th><th class="tc">pH</th><th class="tc">CONSERVACION</th><th class="tc">T.CALIENTE C</th><th class="tc">T.FRIA C</th>';
+  html+='</tr></thead><tbody>';
+  idxs.forEach(function(idx){
+    if(idx>=ACS38.length)return;
+    var g=ACS38[idx];
+    var base=mk('acsm',mk2,g.n);
+    var cl=gv(base+'_cl'),ph=gv(base+'_ph'),cons=gv(base+'_cons'),tc=gv(base+'_tc'),tf=gv(base+'_tf');
+    var tcN=parseFloat(tc);var bad=tc&&tcN<50;
+    html+='<tr>';
+    html+='<td><strong>'+g.ni+'</strong></td><td style="font-size:11px">'+g.name+'</td>';
+    html+='<td class="tc"><input type="text" class="ci2" style="min-width:56px" value="'+cl+'" inputmode="decimal" data-k="'+base+'_cl" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+    html+='<td class="tc"><input type="text" class="ci2" style="min-width:48px" value="'+ph+'" inputmode="decimal" data-k="'+base+'_ph" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+    html+='<td class="tc"><select class="ci2" data-k="'+base+'_cons" onchange="sv(this.dataset.k,this.value);doSave()"><option value="">-</option><option value="OK"'+(cons==='OK'?' selected':'')+'>OK</option><option value="Revisar"'+(cons==='Revisar'?' selected':'')+'>Revisar</option><option value="Limpieza"'+(cons==='Limpieza'?' selected':'')+'>Limpieza</option></select></td>';
+    html+='<td class="tc"><input type="text" class="'+(bad?'ci2 bad':'ci2'+(tc?' ok':''))+'" style="min-width:56px" value="'+tc+'" inputmode="decimal" data-k="'+base+'_tc" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+    html+='<td class="tc"><input type="text" class="ci2" style="min-width:56px" value="'+tf+'" inputmode="decimal" data-k="'+base+'_tf" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  var cont=document.getElementById('acsmContent');if(cont)cont.innerHTML=html;
+  renderDepos(mk2);
+}
+function renderDepos(mk2){
+  var cont=document.getElementById('deposContent');if(!cont)return;
+  var html='<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>MES</th><th>Nr</th><th>DEPOSITO</th><th class="tc">CLORO</th><th class="tc">pH</th><th class="tc">TEMP C</th><th class="tc">LIMPIEZA BOQUILLA</th></tr></thead><tbody>';
+  for(var mo=0;mo<12;mo++){
+    var key=acsmYr+'_'+String(mo+1).padStart(2,'0');
+    DEPOSITOS.forEach(function(d){
+      if(d.n==='39'&&mo>=6)return;
+      var base=mk('acsd',key,d.n);
+      var cl=gv(base+'_cl'),ph=gv(base+'_ph'),tmp=gv(base+'_tmp'),limpi=gv(base+'_limpi');
+      html+='<tr><td style="font-weight:700;color:var(--blue);font-size:10px">'+MOS[mo]+'</td>';
+      html+='<td><strong>'+d.n+'</strong></td><td style="font-size:11px">'+d.name+'</td>';
+      html+='<td class="tc"><input type="text" class="ci2" style="min-width:52px" value="'+cl+'" inputmode="decimal" data-k="'+base+'_cl" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+      html+='<td class="tc"><input type="text" class="ci2" style="min-width:48px" value="'+ph+'" inputmode="decimal" data-k="'+base+'_ph" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+      html+='<td class="tc"><input type="text" class="ci2" style="min-width:52px" value="'+tmp+'" inputmode="decimal" data-k="'+base+'_tmp" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+      html+=(d.n==='28D'?'<td class="tc"><select class="ci2" data-k="'+base+'_limpi" onchange="sv(this.dataset.k,this.value);doSave()"><option value="">-</option><option value="SI"'+(limpi==='SI'?' selected':'')+'>SI</option><option value="NO"'+(limpi==='NO'?' selected':'')+'>NO</option></select></td>':'<td class="tc" style="color:#ccc;font-size:9px">N/A</td>');
+      html+='</tr>';
+    });
+  }
+  html+='</tbody></table></div>';
+  cont.innerHTML=html;
+}
+
+// ══ DIARIO AGUA FRIA SANITARIA ══
+var AFS_PTS=[{n:'40',name:'Deposito Aporte Box Lavado'},{n:'5',name:'Lavabo Aseo Antecamara Congelado'}];
+var afsDate=new Date();
+function afsHoy(){afsDate=new Date();var el=document.getElementById('afsDate');if(el)el.value=ds(afsDate);renderAFS();}
+function afsPN(n){afsDate=new Date(afsDate);afsDate.setDate(afsDate.getDate()+n);var el=document.getElementById('afsDate');if(el)el.value=ds(afsDate);renderAFS();}
+function renderAFS(){
+  var dateEl=document.getElementById('afsDate');
+  var dateStr=dateEl?dateEl.value:ds(new Date());
+  var html='<div class="card"><div style="background:var(--navy);color:#fff;padding:8px 12px;font-size:11px;font-weight:700">Agua Fria Sanitaria — '+dateStr+'</div>';
+  html+='<div style="overflow-x:auto"><table class="tbl" style="min-width:380px"><thead><tr>';
+  html+='<th>Nr</th><th>PUNTO CONTROL</th><th class="tc">pH DIARIO</th><th class="tc">CLORO mg/L</th><th class="tc">TEMP C (semanal)</th>';
+  html+='</tr></thead><tbody>';
+  var tot=0,fill=0;
+  AFS_PTS.forEach(function(p){
+    var kph=mk('afs',dateStr,p.n,'ph');
+    var kcl=mk('afs',dateStr,p.n,'cl');
+    var ktmp=mk('afs',dateStr,p.n,'tmp');
+    var ph=gv(kph),cl=gv(kcl),tmp=gv(ktmp);
+    tot+=2;if(ph)fill++;if(cl)fill++;
+    var phCls=colorCl(ph,'ph'),clCls=colorCl(cl,'cl');
+    html+='<tr>';
+    html+='<td><strong>'+p.n+'</strong></td>';
+    html+='<td style="font-size:11px">'+p.name+'</td>';
+    html+='<td class="tc"><input type="text" class="'+phCls+'" style="min-width:56px" placeholder="6.5-9.5" value="'+ph+'" inputmode="decimal" data-k="'+kph+'" data-f="ph" onchange="sv(this.dataset.k,this.value);doSave();" oninput="this.className=colorCl(this.value,this.dataset.f)"></td>';
+    html+='<td class="tc"><input type="text" class="'+clCls+'" style="min-width:56px" placeholder="0.2-1" value="'+cl+'" inputmode="decimal" data-k="'+kcl+'" data-f="cl" onchange="sv(this.dataset.k,this.value);doSave();" oninput="this.className=colorCl(this.value,this.dataset.f)"></td>';
+    html+=(p.n==='40'?'<td class="tc"><input type="text" class="ci2" style="min-width:56px" placeholder="C" value="'+tmp+'" inputmode="decimal" data-k="'+ktmp+'" onchange="sv(this.dataset.k,this.value);doSave()"></td>':'<td class="tc" style="color:#ccc;font-size:10px">semanal</td>');
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  var obsK=mk('afs',dateStr,'obs');
+  html+='<div class="cbody"><label class="fl">Observaciones del dia</label><input class="fi" style="font-size:12px" placeholder="Incidencias, anomalias..." value="'+gv(obsK).replace(/"/g,'&quot;')+'" data-k="'+obsK+'" onchange="sv(this.dataset.k,this.value);doSave()"></div></div>';
+  var cont=document.getElementById('afsContent');if(cont)cont.innerHTML=html;
+  var t=document.getElementById('afsTot');if(t)t.textContent=fill;
+  var o=document.getElementById('afsOk');if(o)o.textContent=tot?Math.round(fill/tot*100)+'%':'0%';
+}
+
+// ══ PWA — INSTALAR APP ══
+var deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',function(e){
+  e.preventDefault();deferredPrompt=e;
+  var btn=document.getElementById('btnInstall');if(btn)btn.style.display='flex';
+});
+function installPWA(){
+  cm();
+  if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(function(){deferredPrompt=null;var btn=document.getElementById('btnInstall');if(btn)btn.style.display='none';});}
+  else{alert('Para instalar: toca los 3 puntos del navegador y selecciona Añadir a pantalla de inicio');}
+}
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(function(regs){regs.forEach(function(r){r.unregister();});});
+}
+
+// ══ INTEGRAR EN goTab ══
+var _origGoTab2=goTab;
+goTab=function(id,el){
+  _origGoTab2(id,el);
+  if(id==='acsm'){initACSM();renderACSM();}
+  if(id==='afs'){afsHoy();renderAFS();}
+};
+// ══ INTEGRAR EN initApp ══
+var _origInitApp10=initApp;
+initApp=function(){
+  _origInitApp10();
+  var d=document.getElementById('afsDate');if(d)d.value=ds(new Date());
+  renderAFS();initACSM();renderACSM();
+};
+
+// ══ DARK MODE ══
+function toggleDark(){
+  var d=document.documentElement.hasAttribute('data-dark');
+  if(d)document.documentElement.removeAttribute('data-dark');
+  else document.documentElement.setAttribute('data-dark','');
+  localStorage.setItem('dark',d?'0':'1');
+  var btn=document.getElementById('btnDark');if(btn)btn.textContent=d?'🌙':'☀️';
+}
+(function(){
+  if(localStorage.getItem('dark')==='1'){
+    document.documentElement.setAttribute('data-dark','');
+    document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('btnDark');if(b)b.textContent='☀️';});
+  }
+})();
+
+// ══ ROLES ══
+var ROLES={admin:{label:'Admin',color:'#7c3aed'},supervisor:{label:'Supervisor',color:'#2589c7'},tecnico:{label:'Técnico',color:'#0d8a7a'},lectura:{label:'Solo lectura',color:'#8899aa'}};
+var userRole='tecnico';
+function initRoles(){
+  var saved=localStorage.getItem('aqp_role');if(saved&&ROLES[saved])userRole=saved;
+  var badge=document.getElementById('roleBadge');
+  if(badge){badge.style.display='block';badge.textContent=ROLES[userRole].label;}
+  var grid=document.getElementById('roleGrid');
+  if(grid){
+    var html='';
+    Object.keys(ROLES).forEach(function(r){
+      var ro=ROLES[r];var active=r===userRole;
+      html+='<button class="btn bs" style="font-size:11px;padding:6px" data-role="'+r+'" onclick="setRole(this.dataset.role)">'+ro.label+'</button>';
+    });
+    grid.innerHTML=html;
+  }
+}
+function setRole(r){if(!ROLES[r])return;userRole=r;localStorage.setItem('aqp_role',r);initRoles();toast('Rol: '+ROLES[r].label);}
+function loadAudit(){try{var s=localStorage.getItem('aqp_audit');if(s)AUDIT=JSON.parse(s);}catch(e){}}
+function renderAudit(){
+  var el=document.getElementById('auditList');if(!el)return;
+  if(!AUDIT.length){el.innerHTML='<div style="text-align:center;padding:12px;color:#8899aa;font-size:11px">Sin acciones registradas</div>';return;}
+  el.innerHTML=AUDIT.slice(0,20).map(function(a){
+    return '<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px">'
+      +'<div style="color:#8899aa;white-space:nowrap;font-family:monospace;font-size:9px;min-width:80px">'+a.t.split(',')[1]||a.t+'</div>'
+      +'<div style="flex:1"><strong>'+a.a+'</strong>'+(a.d?' — '+a.d:'')+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+// ══ INDEXEDDB OFFLINE ══
+var IDB=null;
+(function(){
+  try{
+    var req=indexedDB.open('AquaPro',1);
+    req.onupgradeneeded=function(e){e.target.result.createObjectStore('data',{keyPath:'id'});};
+    req.onsuccess=function(e){IDB=e.target.result;};
+  }catch(e){console.warn('IDB:',e);}
+})();
+function idbSave(uid,data){
+  if(!IDB)return;
+  try{var tx=IDB.transaction('data','readwrite');tx.objectStore('data').put({id:uid,data:data,ts:Date.now()});}catch(e){}
+}
+function idbLoad(uid,cb){
+  if(!IDB){cb(null);return;}
+  try{var tx=IDB.transaction('data','readonly');var req=tx.objectStore('data').get(uid);req.onsuccess=function(e){cb(e.target.result?e.target.result.data:null);};req.onerror=function(){cb(null);};}
+  catch(e){cb(null);}
+}
+
+// ══ GRÁFICA DE EVOLUCIÓN ══
+var myChartInst=null,grafParam='ph';
+function setGrafParam(p){grafParam=p;renderGraf();}
+function togCard(h){var b=h.nextElementSibling;if(b){var open=b.style.display!=='none';b.style.display=open?'none':'block';h.querySelector('span').textContent=open?'▼':'▲';}}
+function renderGraf(){
+  var canvas=document.getElementById('myChart');if(!canvas||typeof Chart==='undefined')return;
+  var yr=parseInt(document.getElementById('ppclYr').value)||new Date().getFullYear();
+  var days=new Date(yr,ppclMo+1,0).getDate();
+  var conds=getConds();var labels=[];var datasets=[];var colors=['#2589c7','#0d8a7a','#7c3aed','#c97b00'];
+  for(var d=1;d<=days;d++)labels.push(String(d));
+  conds.forEach(function(cond,ci){
+    var vals=[];
+    for(var d=1;d<=days;d++){var v=parseFloat(gv(mk('ppcl',yr,ppclMo,cond.n,d,grafParam)));vals.push(isNaN(v)?null:v);}
+    datasets.push({label:cond.name,data:vals,borderColor:colors[ci%colors.length],backgroundColor:'transparent',tension:0.3,spanGaps:true,pointRadius:2,borderWidth:2});
+  });
+  if(myChartInst)myChartInst.destroy();
+  myChartInst=new Chart(canvas,{type:'line',data:{labels:labels,datasets:datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:12}}},scales:{x:{ticks:{font:{size:9}}},y:{ticks:{font:{size:9}}}}}});
+  var sub=document.getElementById('grafSub');if(sub)sub.textContent=grafParam.toUpperCase()+' — '+['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][ppclMo]+' '+yr;
+}
+
+// ══ ALERTAS PREDICTIVAS ══
+function checkAlerts(){
+  var conds=getConds();var piscs=getPiscs();var alerts=[];
+  var today=new Date();var yr=today.getFullYear();var d=today.getDate();var td=ds(today);
+  conds.forEach(function(c){
+    var ph=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,'ph')));
+    var tmp=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,'tmp')));
+    var trb=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,'trb')));
+    if(ph&&(ph<7||ph>8.5))alerts.push({t:'bad',m:'pH fuera de rango en '+c.name+': '+ph});
+    if(tmp&&tmp>37)alerts.push({t:'bad',m:'Temperatura alta en '+c.name+': '+tmp+'°C'});
+    if(trb&&trb>5)alerts.push({t:'warn',m:'Turbidez elevada en '+c.name+': '+trb+' NTU'});
+  });
+  piscs.forEach(function(p){
+    var cl=parseFloat(gv(mk('pisc',td,'m',p.id,'cl')));
+    var ph=parseFloat(gv(mk('pisc',td,'m',p.id,'ph')));
+    if(cl&&(cl<0.5||cl>2))alerts.push({t:'bad',m:'Cloro fuera de rango en '+p.name+': '+cl+' mg/L'});
+    if(ph&&(ph<7.2||ph>7.8))alerts.push({t:'bad',m:'pH fuera de rango en '+p.name+': '+ph});
+  });
+  var ab=document.getElementById('alertBox');
+  if(ab){
+    if(alerts.length){
+      ab.innerHTML=alerts.map(function(a){return '<div class="alert-b '+a.t+'">'+a.m+'</div>';}).join('');
+    }else{ab.innerHTML='';}
+  }
+  return alerts;
+}
+
+// ══ QR DE VALIDACIÓN ══
+function closeQR(){var m=document.getElementById("qrModal");if(m)m.remove();}
+function showQR(){
+  var tec=gv('__tec')||'—';var emp=gv('__name')||'AquaControl Pro';
+  var data='AQUAPRO|'+emp+'|'+tec+'|'+new Date().toLocaleString('es-ES');
+  var url='https://api.qrserver.com/v1/create-qr-code/?size=180x180&data='+encodeURIComponent(data);
+  var modal=document.createElement('div');modal.id='qrModal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML='<div style="background:var(--surf);border-radius:16px;padding:22px;text-align:center;max-width:240px">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:12px">🔲 QR de Validación</div>'
+    +'<img src="'+url+'" width="180" height="180" style="border:1px solid var(--border);border-radius:8px"><br>'
+    +'<div style="font-size:10px;color:#8899aa;margin-top:8px">'+emp+' · '+tec+'</div>'
+    +'<button onclick="closeQR()" style="margin-top:12px;padding:7px 20px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Cerrar</button>'
+    +'</div>';
+  document.body.appendChild(modal);
+}
+
+// ══ ONLINE/OFFLINE ══
+var offlineBanner=null;
+function updateOnline(){
+  if(!navigator.onLine){
+    if(!document.getElementById('offBanner')){
+      var b=document.createElement('div');b.id='offBanner';
+      b.style.cssText='position:fixed;top:60px;left:0;right:0;background:#c97b00;color:#fff;text-align:center;padding:6px;font-size:11px;font-weight:700;z-index:500';
+      b.textContent='📵 Sin conexión — los datos se guardan localmente';
+      document.body.appendChild(b);
+    }
+  } else {
+    var b=document.getElementById('offBanner');if(b)b.remove();
+  }
+}
+window.addEventListener('online',updateOnline);
+window.addEventListener('offline',updateOnline);
+
+// ══ INTEGRAR EN showApp ══
+var _origShowApp=showApp;
+showApp=function(){
+  _origShowApp();
+  loadAudit();initRoles();updateOnline();
+  auditLog('LOGIN','Sesión iniciada');
+  setTimeout(renderGraf,800);
+  setTimeout(checkAlerts,1000);
+};
+// ══ INTEGRAR EN doSave ══
+var _origDoSave=doSave;
+doSave=function(){
+  _origDoSave();
+  if(user)idbSave(user.uid,DATA);
+  auditLog('GUARDAR','Datos guardados');
+};
+// ══ INTEGRAR EN goTab ══
+var _origGoTabM=goTab;
+goTab=function(id,el){
+  _origGoTabM(id,el);
+  if(id==='d'){setTimeout(renderGraf,300);checkAlerts();}
+  if(id==='cfg'){renderAudit();initRoles();}
+};
+// ══ QR EN MENÚ ══
+document.addEventListener('DOMContentLoaded',function(){
+  var omenu=document.getElementById('omenu');
+  if(omenu&&!document.getElementById('qrBtn')){
+    var item=document.createElement('div');item.className='omi';item.id='qrBtn';
+    item.innerHTML='🔲 QR de validación';item.onclick=function(){cm();showQR();};
+    omenu.insertBefore(item,omenu.lastElementChild);
+  }
+});
+
 </script>
 </body>
 </html>
