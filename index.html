@@ -2,6 +2,9 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <script>
 (function(){
   document.addEventListener('contextmenu',function(e){e.preventDefault();return false;});
@@ -1628,7 +1631,7 @@ function launchApp(company){
 function applyTheme(c){
   document.documentElement.style.setProperty('--co',c.color||'#2589c7');
   document.getElementById('hdrName').textContent=c.name;
-  document.getElementById('hdrCode').textContent='v8.1 · '+c.code;
+  document.getElementById('hdrCode').textContent='v8.2 · '+c.code;
   document.getElementById('cfgCode').textContent=c.code;
   const logo=localStorage.getItem('logo_'+c.code)||c.logo||'';
   setLogo(logo);
@@ -2726,9 +2729,16 @@ renderDashboard = function(){
 };
 
 if('serviceWorker' in navigator){
-  window.addEventListener('load',function(){
-    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  // Desregistrar TODOS los service workers para forzar recarga limpia
+  navigator.serviceWorker.getRegistrations().then(function(regs){
+    regs.forEach(function(r){r.unregister();});
   });
+  // Limpiar caches viejos
+  if(window.caches){
+    caches.keys().then(function(names){
+      names.forEach(function(n){caches.delete(n);});
+    });
+  }
 }
 </script>
 </body>
