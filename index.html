@@ -1691,18 +1691,18 @@ function setSS(type,msg){
 // ═══ INIT ════════════════════════════════════════════
 function initApp(){
   const today=new Date();
+  // initLang PRIMERO para que MOS_S esté correcto antes de renderPPCL
+  initLang();
   document.getElementById('ppclYr').value=today.getFullYear();
   const pd=document.getElementById('piscDate');if(pd)pd.value=ds(today);
   updateClock();setInterval(updateClock,1000);
   renderModules();renderAlertasCfg();renderCondList();renderPiscList();renderGrifoList();
-  // Cargar nombre técnico en config
   const tecCfg=document.getElementById('cfgTecnico');
   if(tecCfg)tecCfg.value=gv('__tecnico')||'';
   renderPPCL();renderPiscina();renderACS();renderPotable();
   renderChecklists();renderIncidencias();renderDashboard();
   loadMods();
   goTab('dashboard',document.querySelector('#bnav .nitem'));
-  initLang();
 }
 function refreshAll(){renderCondList();renderPiscList();renderGrifoList();renderPPCL();renderPiscina();renderACS();renderPotable();renderDashboard();renderIncidencias();checkAlerts();loadMods();}
 function updateClock(){const el=document.getElementById('clk');if(el)el.textContent=new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
@@ -1807,44 +1807,56 @@ function getConds(){try{const s=gv('__conds');if(s)return JSON.parse(s);}catch(e
 function renderPPCL(){
   const yr=parseInt(document.getElementById('ppclYr').value)||new Date().getFullYear();
   const days=new Date(yr,ppclMo+1,0).getDate();
-  const today=new Date();const td=today.getDate();const thisM=(yr===today.getFullYear()&&ppclMo===today.getMonth());
+  const today=new Date();const td=today.getDate();
+  const thisM=(yr===today.getFullYear()&&ppclMo===today.getMonth());
+  // Pills de meses
   const pills=document.getElementById('ppclPills');
-  pills.innerHTML=MOS_S.map((m,i)=>'<div class="pill'+(i===ppclMo?' on':'')+'" onclick="ppclMo='+i+';renderPPCL()">'+m+'</div>').join('');
-  document.getElementById('ppclBadge').textContent=days+' días';
+  if(pills){
+    pills.innerHTML=MOS_S.map((m,i)=>'<div class="pill'+(i===ppclMo?' on':'')+'" onclick="ppclMo='+i+';renderPPCL()">'+m+'</div>').join('');
+  }
+  const badge=document.getElementById('ppclBadge');
+  if(badge)badge.textContent=days+' dias';
   const conds=getConds();
   const grid=document.getElementById('ppclGrid');
-  grid.innerHTML='';grid.className='cgrid';
-  grid.style.gridTemplateColumns='repeat('+Math.min(conds.length,2)+',1fr)';
-  let tot=0,fill=0,alrt=0;
+  if(!grid)return;
+  // Generar HTML directamente con innerHTML (más robusto que createElement)
+  let html='';let tot=0;let fill=0;let alrt=0;
+  html+='<div style="display:grid;grid-template-columns:repeat('+Math.min(conds.length,2)+',1fr);gap:8px;min-width:320px">';
   conds.forEach(cond=>{
-    const col=document.createElement('div');col.className='ccol';
-    const hdr=document.createElement('div');hdr.className='chdr';hdr.textContent=cond.name;col.appendChild(hdr);
-    const sh=document.createElement('div');sh.className='csh';
-    [tr('cond_day'),tr('cond_bioc'),tr('cond_temp'),tr('cond_ph'),tr('cond_turb')].forEach(h=>{const d=document.createElement('div');d.className='cshc';d.textContent=h;sh.appendChild(d);});
-    col.appendChild(sh);
+    html+='<div class="ccol">';
+    html+='<div class="chdr">'+cond.name+'</div>';
+    html+='<div class="csh">';
+    ['DIA','BIOCIDAD','TEMP °C','pH','NTU'].forEach(h=>{
+      html+='<div class="cshc">'+h+'</div>';
+    });
+    html+='</div>';
     for(let d=1;d<=days;d++){
-      const row=document.createElement('div');row.className='crow'+(thisM&&d===td?' td':'');
-      const dn=document.createElement('div');dn.className='ccell';dn.innerHTML='<div class="dnum">'+d+'</div>';row.appendChild(dn);
+      const isToday=thisM&&d===td;
+      html+='<div class="crow'+(isToday?' td':'')+'">';
+      html+='<div class="ccell"><div class="dnum">'+String(d).padStart(2,'0')+'</div></div>';
       ['biocidad','temperatura','ph','turbidez'].forEach(f=>{
-        const cell=document.createElement('div');cell.className='ccell';
         const k=mk('ppcl',yr,ppclMo,cond.n,d,f);
-        const inp=document.createElement('input');
-        inp.type='text';inp.className='ci2';
-        inp.placeholder=f==='ph'?'7.x':f==='temperatura'?'°C':f==='turbidez'?'NTU':'';
-        inp.setAttribute('inputmode','decimal');inp.value=gv(k);inp.dataset.k=k;inp.dataset.f=f;
-        inp.addEventListener('change',e=>{sv(e.target.dataset.k,e.target.value);colorI(e.target,e.target.dataset.f);doSave();checkAlerts();});
-        inp.addEventListener('input',e=>colorI(e.target,e.target.dataset.f));
-        colorI(inp,f);tot++;if(inp.value)fill++;if(inp.classList.contains('bad'))alrt++;
-        cell.appendChild(inp);row.appendChild(cell);
+        const v=(gv(k)||'').replace(/"/g,'&quot;');
+        tot++;if(v)fill++;
+        const ph_cls=f==='ph'&&v&&(parseFloat(v)<7||parseFloat(v)>8.5)?' bad':f==='ph'&&v?' ok':'';
+        const tmp_cls=f==='temperatura'&&v&&parseFloat(v)>37?' bad':'';
+        const trb_cls=f==='turbidez'&&v&&parseFloat(v)>5?' bad':'';
+        const cls='ci2'+(ph_cls||tmp_cls||trb_cls);
+        if(ph_cls.includes('bad')||tmp_cls||trb_cls)alrt++;
+        const ph=f==='ph'?'7.x':f==='temperatura'?'°C':f==='turbidez'?'NTU':'';
+        html+='<div class="ccell"><input type="text" class="'+cls+'" placeholder="'+ph+'" value="'+v+'" inputmode="decimal" data-k="'+k+'" data-f="'+f+'" onchange="sv(this.dataset.k,this.value);doSave();checkAlerts();" style="width:100%;min-width:44px"></div>';
       });
-      col.appendChild(row);
+      html+='</div>';
     }
-    grid.appendChild(col);
+    html+='</div>';
   });
-  document.getElementById('ppclTot').textContent=fill;
-  document.getElementById('ppclOk').textContent=fill-alrt;
-  document.getElementById('ppclPct').textContent=tot?Math.round(fill/tot*100)+'%':'0%';
+  html+='</div>';
+  grid.innerHTML=html;
+  const elTot=document.getElementById('ppclTot');if(elTot)elTot.textContent=fill;
+  const elOk=document.getElementById('ppclOk');if(elOk)elOk.textContent=fill-alrt;
+  const elPct=document.getElementById('ppclPct');if(elPct)elPct.textContent=tot?Math.round(fill/tot*100)+'%':'0%';
 }
+
 function colorI(inp,f){
   const v=parseFloat(inp.value);if(!inp.value){inp.className='ci2';return;}
   let c='ok';
