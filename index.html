@@ -2581,19 +2581,92 @@ function weekLbl(wk){const[y,w]=wk.split('-W').map(Number);const d=new Date(Date
 function ds(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 </script>
 
-<script>
-// ═══════════════════════════════════════════════════
-// MÓDULOS NUEVOS: ACS Semanal 38 grifos, ACS Mensual,
-// Depósitos anuales, Diario Agua Fría Sanitaria
-// Técnico y DNI en cada registro
-// ═══════════════════════════════════════════════════
 
-// ── DATOS: 38 GRIFOS ACS SEMANAL ─────────────────
+<script>
+// ═══════════════════════════════════════════════════════
+// AQUACONTROL PRO — MÓDULOS ADICIONALES v8.0
+// Agua Fría Sanitaria · ACS Mensual 38 grifos · Depósitos
+// Dark Mode · Offline · Auditoría · QR
+// ═══════════════════════════════════════════════════════
+'use strict';
+
+// ── DARK MODE ────────────────────────────────────────
+function toggleDark(){
+  var d=document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.setAttribute('data-theme',d?'light':'dark');
+  localStorage.setItem('__theme',d?'light':'dark');
+  var btn=document.getElementById('btnDark');
+  if(btn)btn.textContent=d?'🌙':'☀️';
+}
+(function initTheme(){
+  var t=localStorage.getItem('__theme')||'light';
+  document.documentElement.setAttribute('data-theme',t);
+  document.addEventListener('DOMContentLoaded',function(){
+    var btn=document.getElementById('btnDark');
+    if(btn)btn.textContent=t==='dark'?'☀️':'🌙';
+  });
+})();
+
+// ── ONLINE/OFFLINE ───────────────────────────────────
+function updateOnlineStatus(){
+  var b=document.getElementById('offlineBadge');
+  if(b)b.classList.toggle('on',!navigator.onLine);
+}
+window.addEventListener('online',updateOnlineStatus);
+window.addEventListener('offline',updateOnlineStatus);
+
+// ── AUDITORÍA ────────────────────────────────────────
+var AUDIT_LOG=[];
+function auditLog(action,detail){
+  try{
+    var entry={action:action,detail:detail||'',time:new Date().toLocaleString('es-ES')};
+    AUDIT_LOG.unshift(entry);
+    if(AUDIT_LOG.length>100)AUDIT_LOG=AUDIT_LOG.slice(0,100);
+    localStorage.setItem('__audit',JSON.stringify(AUDIT_LOG.slice(0,50)));
+  }catch(e){}
+}
+function loadAuditLog(){
+  try{var s=localStorage.getItem('__audit');if(s)AUDIT_LOG=JSON.parse(s);}catch(e){}
+}
+function renderAuditSection(){
+  var el=document.getElementById('auditSection');if(!el)return;
+  loadAuditLog();
+  if(!AUDIT_LOG.length){el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px">Sin acciones registradas</div>';return;}
+  el.innerHTML='<div style="overflow-y:auto;max-height:250px">'
+    +AUDIT_LOG.map(function(a){
+      return '<div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:11px">'
+        +'<div style="color:var(--text3);white-space:nowrap;font-family:monospace;font-size:9px;flex-shrink:0">'+a.time+'</div>'
+        +'<div style="flex:1;font-weight:600">'+a.action+(a.detail?' <span style="color:var(--text3);font-weight:400">— '+a.detail+'</span>':'')+'</div>'
+        +'</div>';
+    }).join('')
+    +'</div>';
+}
+
+// ── QR VALIDACIÓN ────────────────────────────────────
+function closeQRModal(){var m=document.getElementById("qrModal");if(m)m.parentNode.removeChild(m);}
+function showQRValidacion(){
+  var now=new Date();
+  var tec=typeof gv==='function'?gv('__tecnico'):'—';
+  var empresa=typeof co!=='undefined'&&co?co.name:'AquaControl Pro';
+  var qrData='AQUAPRO|'+empresa+'|'+tec+'|'+now.toLocaleString('es-ES');
+  var url='https://api.qrserver.com/v1/create-qr-code/?size=160x160&data='+encodeURIComponent(qrData);
+  var modal=document.createElement('div');modal.id='qrModal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML='<div style="background:var(--surface);border-radius:16px;padding:24px;text-align:center;max-width:260px;">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:12px">🔲 QR de Validación</div>'
+    +'<img src="'+url+'" width="160" height="160" style="border:1px solid var(--border);border-radius:8px;"><br>'
+    +'<div style="font-size:10px;color:var(--text3);margin-top:8px">'+empresa+'</div>'
+    +'<div style="font-size:10px;color:var(--text3)">'+tec+'</dcloseQRModal()" style="margin-top:14px;padding:8px 24px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px">Cerrar</button>'
+    +'</div>';
+  document.body.appendChild(modal);
+}
+
+// ── 38 GRIFOS ACS SEMANAL ────────────────────────────
 var ACS_GRIFOS_38=[
   {n:'1',ni:'1',name:'Fuente Agua Calle 17',cod:'46031'},
-  {n:'2',ni:'2',name:'Grifo Departamento Calidad (1)',cod:'46031'},
-  {n:'3',ni:'3',name:'Grifo Departamento Calidad (2)',cod:'46031'},
-  {n:'4',ni:'4',name:'Grifo Departamento Calidad (3)',cod:'46031'},
+  {n:'2',ni:'2',name:'Grifo Depto. Calidad (1)',cod:'46031'},
+  {n:'3',ni:'3',name:'Grifo Depto. Calidad (2)',cod:'46031'},
+  {n:'4',ni:'4',name:'Grifo Depto. Calidad (3)',cod:'46031'},
   {n:'5',ni:'5',name:'Grifo Aseo Camara',cod:'46035'},
   {n:'6',ni:'6',name:'Grifo Fuente Transportes',cod:'46035'},
   {n:'7',ni:'7',name:'Grifo Pila Sala Bateria',cod:'46035'},
@@ -2603,15 +2676,15 @@ var ACS_GRIFOS_38=[
   {n:'11',ni:'11',name:'Grifo Vestuarios Hombres (3)',cod:'46041'},
   {n:'12',ni:'12',name:'Grifo Vestuarios Hombres (4)',cod:'46041'},
   {n:'13',ni:'13',name:'Grifo Aseo WC Transportes',cod:'46048'},
-  {n:'14A',ni:'14A',name:'Grifo Aseo Femenino Oficina 1',cod:'46048'},
-  {n:'14B',ni:'14B',name:'Grifo Aseo Femenino Oficina 2',cod:'46048'},
-  {n:'14C',ni:'14C',name:'Grifo Aseo Femenino Oficina 3',cod:'46048'},
-  {n:'15A',ni:'15A',name:'Grifo Aseo Masculino Oficina 1',cod:'46055'},
-  {n:'15B',ni:'15B',name:'Grifo Aseo Masculino Oficina 2',cod:'46055'},
-  {n:'15C',ni:'15C',name:'Grifo Aseo Masculino Oficina 3',cod:'46055'},
-  {n:'16',ni:'16',name:'Grifos Vestuarios Mujeres (1)',cod:'46055'},
-  {n:'17',ni:'17',name:'Grifos Vestuarios Mujeres (2)',cod:'46062'},
-  {n:'18',ni:'18',name:'Grifos Vestuarios Mujeres (3)',cod:'46062'},
+  {n:'14A',ni:'14A',name:'Grifo Aseo Femenino Of.1',cod:'46048'},
+  {n:'14B',ni:'14B',name:'Grifo Aseo Femenino Of.2',cod:'46048'},
+  {n:'14C',ni:'14C',name:'Grifo Aseo Femenino Of.3',cod:'46048'},
+  {n:'15A',ni:'15A',name:'Grifo Aseo Masculino Of.1',cod:'46055'},
+  {n:'15B',ni:'15B',name:'Grifo Aseo Masculino Of.2',cod:'46055'},
+  {n:'15C',ni:'15C',name:'Grifo Aseo Masculino Of.3',cod:'46055'},
+  {n:'16',ni:'16',name:'Vestuarios Mujeres (1)',cod:'46055'},
+  {n:'17',ni:'17',name:'Vestuarios Mujeres (2)',cod:'46062'},
+  {n:'18',ni:'18',name:'Vestuarios Mujeres (3)',cod:'46062'},
   {n:'19',ni:'19',name:'Grifo Patio Cuba Palet',cod:'46062'},
   {n:'20',ni:'20',name:'Grifo Fuente Muelle Seco',cod:'46062'},
   {n:'21',ni:'21',name:'Grifo Comedor Oficina',cod:'46069'},
@@ -2620,19 +2693,57 @@ var ACS_GRIFOS_38=[
   {n:'26',ni:'26',name:'Grifo Armario Placas',cod:'46069'},
   {n:'28',ni:'28',name:'Grifo Hidrolimpiadora',cod:'46076'},
   {n:'29',ni:'29',name:'Grifo Cuba Organica',cod:'46076'},
-  {n:'30',ni:'30',name:'Ducha Vestuarios Masculino (1)',cod:'46076'},
-  {n:'31',ni:'31',name:'Ducha Vestuarios Masculino (2)',cod:'46076'},
-  {n:'32',ni:'32',name:'Ducha Vestuarios Masculino (3)',cod:'46083'},
-  {n:'33',ni:'33',name:'Ducha Vestuarios Masculino (4)',cod:'46083'},
-  {n:'34',ni:'34',name:'Ducha Vestuarios Masculino (5)',cod:'46083'},
-  {n:'35',ni:'35',name:'Ducha Vestuarios Masculino (6)',cod:'46083'},
-  {n:'36',ni:'36',name:'Ducha Vestuarios Masculino (7)',cod:'46090'},
-  {n:'37',ni:'37',name:'Ducha Vestuarios Masculino (8)',cod:'46090'},
+  {n:'30',ni:'30',name:'Ducha Vestuarios Masc.(1)',cod:'46076'},
+  {n:'31',ni:'31',name:'Ducha Vestuarios Masc.(2)',cod:'46076'},
+  {n:'32',ni:'32',name:'Ducha Vestuarios Masc.(3)',cod:'46083'},
+  {n:'33',ni:'33',name:'Ducha Vestuarios Masc.(4)',cod:'46083'},
+  {n:'34',ni:'34',name:'Ducha Vestuarios Masc.(5)',cod:'46083'},
+  {n:'35',ni:'35',name:'Ducha Vestuarios Masc.(6)',cod:'46083'},
+  {n:'36',ni:'36',name:'Ducha Vestuarios Masc.(7)',cod:'46090'},
+  {n:'37',ni:'37',name:'Ducha Vestuarios Masc.(8)',cod:'46090'},
   {n:'38',ni:'38',name:'Ducha Vestuarios Femenino',cod:'46090'},
 ];
 
-// ── DATOS: GRIFOS MENSUALES ROTATIVOS POR MES ────
-// Cada mes tiene grifos distintos asignados
+// Override renderACS para usar los 38 grifos con Turbidez AF/AC/Apertura
+var _baseRenderACS=null;
+document.addEventListener('DOMContentLoaded',function(){
+  setTimeout(function(){
+    if(typeof renderACS==='function'){
+      _baseRenderACS=renderACS;
+      renderACS=function(){
+        var wk=typeof acsWk!=='undefined'?acsWk:(typeof isoWeek==='function'?isoWeek(new Date()):'');
+        var tec=typeof gv==='function'?(gv('__tecnico')||''):'';
+        var html='<div style="overflow-x:auto"><table class="dt" style="min-width:600px">';
+        html+='<thead><tr><th style="min-width:40px">Nr</th><th style="min-width:55px">Cod.</th><th style="min-width:180px">GRIFO / PUNTO DE CONTROL</th>';
+        html+='<th class="tc" style="min-width:100px">TURBIDEZ<br><small>AGUA FRÍA (NTU)</small></th>';
+        html+='<th class="tc" style="min-width:100px">TURBIDEZ<br><small>AGUA CALIENTE (NTU)</small></th>';
+        html+='<th class="tc" style="min-width:90px">APERTURA<br><small>GRIFO NO USADO</small></th>';
+        html+='<th class="tc" style="min-width:110px">TÉCNICO</th></tr></thead><tbody>';
+        ACS_GRIFOS_38.forEach(function(g){
+          var ktf=mk('acs_s',wk,g.n,'turbAF');
+          var ktc2=mk('acs_s',wk,g.n,'turbAC');
+          var kap=mk('acs_s',wk,g.n,'ap');
+          var ktec=mk('acs_s',wk,g.n,'tec');
+          var vTurbAF=gv(ktf);var vTurbAC=gv(ktc2);var vAp=gv(kap);var vTec=gv(ktec)||tec;
+          html+='<tr>';
+          html+='<td><b>'+g.ni+'</b></td>';
+          html+='<td style="font-size:9px;color:var(--text3)">'+g.cod+'</td>';
+          html+='<td style="font-size:11px;font-weight:600">'+g.name+'</td>';
+          html+='<td class="tc"><input type="text" class="ci2" placeholder="NTU" value="'+vTurbAF+'" inputmode="decimal" data-k="'+ktf+'" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+          html+='<td class="tc"><input type="text" class="ci2" placeholder="NTU" value="'+vTurbAC+'" inputmode="decimal" data-k="'+ktc2+'" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+          html+='<td class="tc"><select class="ci2" data-k="'+kap+'" onchange="sv(this.dataset.k,this.value);doSave()"><option value="">—</option><option value="SI"'+(vAp==='SI'?' selected':'')+'>SI</option><option value="NO"'+(vAp==='NO'?' selected':'')+'>NO</option><option value="N/A"'+(vAp==='N/A'?' selected':'')+'>N/A</option></select></td>';
+          html+='<td class="tc"><input type="text" class="ci2" style="font-size:9px" placeholder="Técnico" value="'+vTec+'" data-k="'+ktec+'" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+          html+='</tr>';
+        });
+        html+='</tbody></table></div>';
+        var cont=document.getElementById('acsCont')||document.getElementById('acsContent');
+        if(cont)cont.innerHTML=html;
+      };
+    }
+  },500);
+});
+
+// ── ACS MENSUAL 38 GRIFOS ROTATIVOS ─────────────────
 var ACS_MENSUAL_POR_MES={
   0:[{n:'1',ni:'1',name:'Fuente Agua Calle 17',cod:'46035'},{n:'2',ni:'2',name:'Grifo Depto Calidad (1)',cod:'46035'},{n:'3',ni:'3',name:'Grifo Depto Calidad (2)',cod:'46035'},{n:'4',ni:'4',name:'Grifo Depto Calidad (3)',cod:'46035'}],
   1:[{n:'5',ni:'5',name:'Grifo Aseo Camara',cod:'46055'},{n:'6',ni:'6',name:'Grifo Fuente Transportes',cod:'46055'},{n:'7',ni:'7',name:'Grifo Pila Sala Bateria',cod:'46055'},{n:'8',ni:'8',name:'Grifo Aseo WC Seco',cod:'46055'}],
@@ -2640,129 +2751,81 @@ var ACS_MENSUAL_POR_MES={
   3:[{n:'13',ni:'13',name:'Grifo Aseo WC Transportes',cod:'46118'},{n:'14A',ni:'14A',name:'Grifo Aseo Femenino Of.1',cod:'46118'},{n:'14B',ni:'14B',name:'Grifo Aseo Femenino Of.2',cod:'46118'}],
   4:[{n:'14C',ni:'14C',name:'Grifo Aseo Femenino Of.3',cod:'46146'},{n:'15A',ni:'15A',name:'Grifo Aseo Masculino Of.1',cod:'46146'},{n:'15B',ni:'15B',name:'Grifo Aseo Masculino Of.2',cod:'46146'}],
   5:[{n:'15C',ni:'15C',name:'Grifo Aseo Masculino Of.3',cod:'46174'},{n:'16',ni:'16',name:'Vestuarios Mujeres (1)',cod:'46174'},{n:'17',ni:'17',name:'Vestuarios Mujeres (2)',cod:'46174'}],
-  6:[{n:'18',ni:'18',name:'Vestuarios Mujeres (3)',cod:'46204'},{n:'19',ni:'19',name:'Grifo Patio Cuba Palet',cod:'46204'},{n:'20',ni:'20',name:'Grifo Fuente Muelle Seco',cod:'46204'}],
-  7:[{n:'21',ni:'21',name:'Grifo Comedor Oficina',cod:'46237'},{n:'22',ni:'22',name:'Grifo Comedor Mozo',cod:'46237'},{n:'24',ni:'24',name:'Grifo Fuente Muelle Fruta',cod:'46237'}],
-  8:[{n:'26',ni:'26',name:'Grifo Armario Placas',cod:'46266'},{n:'28',ni:'28',name:'Grifo Hidrolimpiadora',cod:'46266'},{n:'29',ni:'29',name:'Grifo Cuba Organica',cod:'46266'}],
+  6:[{n:'18',ni:'18',name:'Vestuarios Mujeres (3)',cod:'46204'},{n:'19',ni:'19',name:'Patio Cuba Palet',cod:'46204'},{n:'20',ni:'20',name:'Fuente Muelle Seco',cod:'46204'}],
+  7:[{n:'21',ni:'21',name:'Comedor Oficina',cod:'46237'},{n:'22',ni:'22',name:'Comedor Mozo',cod:'46237'},{n:'24',ni:'24',name:'Fuente Muelle Fruta',cod:'46237'}],
+  8:[{n:'26',ni:'26',name:'Armario Placas',cod:'46266'},{n:'28',ni:'28',name:'Hidrolimpiadora',cod:'46266'},{n:'29',ni:'29',name:'Cuba Organica',cod:'46266'}],
   9:[{n:'30',ni:'30',name:'Ducha Vestuarios Masc.(1)',cod:'46296'},{n:'31',ni:'31',name:'Ducha Vestuarios Masc.(2)',cod:'46296'},{n:'32',ni:'32',name:'Ducha Vestuarios Masc.(3)',cod:'46296'}],
   10:[{n:'33',ni:'33',name:'Ducha Vestuarios Masc.(4)',cod:'46328'},{n:'34',ni:'34',name:'Ducha Vestuarios Masc.(5)',cod:'46328'},{n:'35',ni:'35',name:'Ducha Vestuarios Masc.(6)',cod:'46328'}],
-  11:[{n:'36',ni:'36',name:'Ducha Vestuarios Masc.(7)',cod:'46357'},{n:'37',ni:'37',name:'Ducha Vestuarios Masc.(8)',cod:'46357'},{n:'38',ni:'38',name:'Ducha Vestuarios Femenino',cod:'46357'},{n:'28D',ni:'28',name:'Box Lavado Isotermos',cod:'46357'}],
+  11:[{n:'36',ni:'36',name:'Ducha Vestuarios Masc.(7)',cod:'46357'},{n:'37',ni:'37',name:'Ducha Vestuarios Masc.(8)',cod:'46357'},{n:'38',ni:'38',name:'Ducha Vestuarios Femenino',cod:'46357'}],
 };
+var DEPOSITOS_M=[{n:'39',name:'Deposito Contraincendios'},{n:'28D',name:'Box Lavado Isotermos'}];
+var acsmMo=new Date().getMonth(),acsmYr=new Date().getFullYear();
 
-// ── DATOS: DEPÓSITOS MENSUALES ────────────────────
-var DEPOSITOS=[
-  {n:'39',name:'Deposito Contraincendios'},
-  {n:'28',name:'Box Lavado de Isotermos'},
-];
-
-// ── ACS SEMANAL — renderizar con 38 grifos ────────
-// Sobreescribir renderACS para usar los 38 grifos con Turbidez AF/AC/Apertura
-function renderACS(){
-  var wk=typeof acsWk!=='undefined'?acsWk:isoWk(new Date());
-  var tec=gv('__tecnico')||'';var dni=gv('__tecnicoDNI')||'';
-  var html='<div style="overflow-x:auto"><table class="dt" style="min-width:580px">';
-  html+='<thead><tr><th>Nr</th><th>Cod.</th><th>GRIFO / PUNTO</th>';
-  html+='<th class="tc">TURBIDEZ<br>A.FRIA (NTU)</th>';
-  html+='<th class="tc">TURBIDEZ<br>A.CALIENTE (NTU)</th>';
-  html+='<th class="tc">APERTURA<br>GRIFO NO USADO</th>';
-  html+='<th class="tc">TECNICO</th></tr></thead><tbody>';
-  ACS_GRIFOS_38.forEach(function(g){
-    var ktf=mk('acs_s',wk,g.n,'turbAF');
-    var ktc2=mk('acs_s',wk,g.n,'turbAC');
-    var kap=mk('acs_s',wk,g.n,'ap');
-    var ktec=mk('acs_s',wk,g.n,'tec');
-    var vTurbAF=gv(ktf);var vTurbAC=gv(ktc2);var vAp=gv(kap);var vTec=gv(ktec)||tec;
-    html+='<tr>';
-    html+='<td><b>'+g.ni+'</b></td>';
-    html+='<td style="font-size:9px;color:var(--text3)">'+g.cod+'</td>';
-    html+='<td style="font-size:11px;font-weight:600">'+g.name+'</td>';
-    html+='<td class="tc"><input type="text" class="ci2" placeholder="NTU" value="'+vTurbAF+'" inputmode="decimal" data-k="'+ktf+'" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
-    html+='<td class="tc"><input type="text" class="ci2" placeholder="NTU" value="'+vTurbAC+'" inputmode="decimal" data-k="'+ktc2+'" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
-    html+='<td class="tc"><select class="ci2" data-k="'+kap+'" onchange="sv(this.dataset.k,this.value);doSave()"><option value="">—</option><option value="SI"'+(vAp==='SI'?' selected':'')+'>SI</option><option value="NO"'+(vAp==='NO'?' selected':'')+'>NO</option><option value="N/A"'+(vAp==='N/A'?' selected':'')+'>N/A</option></select></td>';
-    html+='<td class="tc"><input type="text" class="ci2" placeholder="Tecnico" value="'+vTec+'" data-k="'+ktec+'" style="font-size:9px" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
-    html+='</tr>';
-  });
-  html+='</tbody></table></div>';
-  // Semana label
-  var swkEl=document.getElementById('acsWkLbl')||document.getElementById('acsWLbl');
-  if(typeof weekLbl==='function'&&swkEl)swkEl.textContent=weekLbl(wk);
-  var cont=document.getElementById('acsCont')||document.getElementById('acsContent');
-  if(cont)cont.innerHTML=html;
-}
-
-// ── ACS MENSUAL — grifos rotativos por mes ────────
-var acsmMo=new Date().getMonth();var acsmYr=new Date().getFullYear();
 function initACSMensual(){
   var sel=document.getElementById('acsmMes');
   if(sel&&!sel.options.length){
-    var MN=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    MN.forEach(function(m,i){var o=document.createElement('option');o.value=i;o.textContent=m;sel.appendChild(o);});
+    ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'].forEach(function(m,i){
+      var o=document.createElement('option');o.value=i;o.textContent=m;sel.appendChild(o);
+    });
     sel.value=acsmMo;
   }
   var yr=document.getElementById('acsmYr');if(yr)yr.value=acsmYr;
-  var t=document.getElementById('acsmTec');if(t)t.value=gv('__tecnico')||'';
-  var d=document.getElementById('acsmDNI');if(d)d.value=gv('__tecnicoDNI')||'';
+  var t=document.getElementById('acsmTec');if(t&&!t.value)t.value=typeof gv==='function'?gv('__tecnico'):'';
+  var d=document.getElementById('acsmDNI');if(d&&!d.value)d.value=typeof gv==='function'?gv('__tecnicoDNI'):'';
 }
 function renderACSMensual(){
   var selMo=document.getElementById('acsmMes');
   var selYr=document.getElementById('acsmYr');
   if(selMo)acsmMo=parseInt(selMo.value);
   if(selYr)acsmYr=parseInt(selYr.value)||new Date().getFullYear();
-  var mesKey=acsmYr+'_'+String(acsmMo+1).padStart(2,'0');
+  var mk2=acsmYr+'_'+String(acsmMo+1).padStart(2,'0');
   var grifos=ACS_MENSUAL_POR_MES[acsmMo]||[];
-  var html='<div style="font-size:11px;color:var(--text3);margin-bottom:8px">Grifos asignados para este mes: <b>'+grifos.length+' puntos de control</b></div>';
+  var html='<div style="font-size:11px;color:var(--text3);margin-bottom:8px;padding:6px 10px;background:var(--blue-l);border-radius:8px">';
+  html+='<b>'+grifos.length+' grifos asignados</b> para este mes — Código ref.: '+mk2+'</div>';
   html+='<div style="overflow-x:auto"><table class="dt" style="min-width:560px">';
-  html+='<thead><tr><th>Nr</th><th>Cod.</th><th>GRIFO</th>';
-  html+='<th class="tc">CLORO<br>(mg/L)</th><th class="tc">pH</th>';
-  html+='<th class="tc">CONSERVACION</th>';
-  html+='<th class="tc">T.CALIENTE<br>(°C ≥50)</th>';
-  html+='<th class="tc">T.FRIA<br>(°C)</th></tr></thead><tbody>';
+  html+='<thead><tr><th>Nr</th><th>Cód.</th><th>GRIFO / PUNTO</th>';
+  html+='<th class="tc">CLORO<br><small>mg/L</small></th><th class="tc">pH</th>';
+  html+='<th class="tc">CONSERVACIÓN</th>';
+  html+='<th class="tc">T.CALIENTE<br><small>°C ≥50</small></th>';
+  html+='<th class="tc">T.FRÍA<br><small>°C</small></th></tr></thead><tbody>';
   grifos.forEach(function(g){
-    var base=mk('acsm',mesKey,g.n);
-    var cl=gv(base+'_cl');var ph=gv(base+'_ph');var cons=gv(base+'_cons');var tc=gv(base+'_tc');var tf=gv(base+'_tf');
-    var tcN=parseFloat(tc);var tcBad=tc&&tcN<50;
+    var base=mk('acsm',mk2,g.n);
+    var cl=gv(base+'_cl'),ph=gv(base+'_ph'),cons=gv(base+'_cons'),tc=gv(base+'_tc'),tf=gv(base+'_tf');
+    var tcN=parseFloat(tc);var bad=tc&&tcN<50;
     html+='<tr>';
     html+='<td><b>'+g.ni+'</b></td><td style="font-size:9px;color:var(--text3)">'+g.cod+'</td>';
     html+='<td style="font-size:11px">'+g.name+'</td>';
-    html+='<td class="tc"><input type="text" class="ci2" placeholder="" value="'+cl+'" inputmode="decimal" data-k="'+base+'_cl" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
-    html+='<td class="tc"><input type="text" class="ci2" placeholder="" value="'+ph+'" inputmode="decimal" data-k="'+base+'_ph" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+    html+='<td class="tc"><input type="text" class="ci2" value="'+cl+'" inputmode="decimal" data-k="'+base+'_cl" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+    html+='<td class="tc"><input type="text" class="ci2" value="'+ph+'" inputmode="decimal" data-k="'+base+'_ph" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
     html+='<td class="tc"><select class="ci2" data-k="'+base+'_cons" onchange="sv(this.dataset.k,this.value);doSave()"><option value="">—</option><option value="OK"'+(cons==='OK'?' selected':'')+'>OK</option><option value="Revisar"'+(cons==='Revisar'?' selected':'')+'>Revisar</option><option value="Limpieza"'+(cons==='Limpieza'?' selected':'')+'>Limpieza</option></select></td>';
-    html+='<td class="tc"><input type="text" class="ci2'+(tcBad?' bad':tc?' ok':'')+'" placeholder="°C" value="'+tc+'" inputmode="decimal" data-k="'+base+'_tc" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
-    html+='<td class="tc"><input type="text" class="ci2" placeholder="°C" value="'+tf+'" inputmode="decimal" data-k="'+base+'_tf" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+    html+='<td class="tc"><input type="text" class="ci2'+(bad?' bad':tc?' ok':'')+'" value="'+tc+'" inputmode="decimal" data-k="'+base+'_tc" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+    html+='<td class="tc"><input type="text" class="ci2" value="'+tf+'" inputmode="decimal" data-k="'+base+'_tf" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
     html+='</tr>';
   });
   html+='</tbody></table></div>';
   var cont=document.getElementById('acsmCont');if(cont)cont.innerHTML=html;
-  renderDepositos(mesKey);
+  renderDepositos(mk2);
 }
-
-// ── DEPÓSITOS MENSUALES ANUALES ───────────────────
-function renderDepositos(mesKeyOpt){
+function renderDepositos(mesKey){
   var cont=document.getElementById('deposCont');if(!cont)return;
-  var yr=acsmYr||new Date().getFullYear();
-  var html='<div style="overflow-x:auto"><table class="dt" style="min-width:500px">';
-  html+='<thead><tr><th>MES</th><th>Nr</th><th>DEPÓSITO</th><th class="tc">CLORO (mg/L)</th><th class="tc">pH</th><th class="tc">TEMP (°C)</th><th class="tc">LIMPIEZA BOQUILLA</th></tr></thead><tbody>';
   var MN=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  // Solo mostrar enero-junio para Nº39, todo el año para Nº28
+  var html='<div style="overflow-x:auto"><table class="dt" style="min-width:480px">';
+  html+='<thead><tr><th>MES</th><th>Nr</th><th>DEPÓSITO</th><th class="tc">CLORO</th><th class="tc">pH</th><th class="tc">TEMP</th><th class="tc">LIMPIEZA BOQUILLA</th></tr></thead><tbody>';
   for(var mo=0;mo<12;mo++){
-    var mk2=yr+'_'+String(mo+1).padStart(2,'0');
-    DEPOSITOS.forEach(function(d){
-      // Nº39 solo ene-jun
+    var mk3=acsmYr+'_'+String(mo+1).padStart(2,'0');
+    DEPOSITOS_M.forEach(function(d){
       if(d.n==='39'&&mo>=6)return;
-      var base=mk('acsd',mk2,d.n);
-      var cl=gv(base+'_cl');var ph=gv(base+'_ph');var tmp=gv(base+'_tmp');var limpi=gv(base+'_limpi');
+      var base=mk('acsd',mk3,d.n);
+      var cl=gv(base+'_cl'),ph=gv(base+'_ph'),tmp=gv(base+'_tmp'),limpi=gv(base+'_limpi');
       html+='<tr>';
-      html+='<td style="font-size:10px;font-weight:700;color:var(--blue)">'+MN[mo]+'</td>';
-      html+='<td><b>'+d.n+'</b></td>';
-      html+='<td style="font-size:11px">'+d.name+'</td>';
-      html+='<td class="tc"><input type="text" class="ci2" placeholder="" value="'+cl+'" inputmode="decimal" data-k="'+base+'_cl" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
-      html+='<td class="tc"><input type="text" class="ci2" placeholder="" value="'+ph+'" inputmode="decimal" data-k="'+base+'_ph" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
-      html+='<td class="tc"><input type="text" class="ci2" placeholder="°C" value="'+tmp+'" inputmode="decimal" data-k="'+base+'_tmp" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
-      // Solo Nº28 tiene limpieza boquilla
-      if(d.n==='28'){
-        html+='<td class="tc"><select class="ci2" data-k="'+base+'_limpi" onchange="sv(this.dataset.k,this.value);doSave()"><option value="">—</option><option value="OK"'+(limpi==='OK'?' selected':'')+'>OK</option><option value="Revisar"'+(limpi==='Revisar'?' selected':'')+'>Revisar</option></select></td>';
-      }else{
-        html+='<td class="tc" style="color:var(--text3);font-size:9px">N/A</td>';
-      }
+      html+='<td style="font-weight:700;color:var(--blue);font-size:10px">'+MN[mo]+'</td>';
+      html+='<td><b>'+d.n+'</b></td><td style="font-size:11px">'+d.name+'</td>';
+      html+='<td class="tc"><input type="text" class="ci2" value="'+cl+'" inputmode="decimal" data-k="'+base+'_cl" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+      html+='<td class="tc"><input type="text" class="ci2" value="'+ph+'" inputmode="decimal" data-k="'+base+'_ph" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+      html+='<td class="tc"><input type="text" class="ci2" value="'+tmp+'" inputmode="decimal" data-k="'+base+'_tmp" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
+      html+=(d.n==='28D'
+        ?'<td class="tc"><select class="ci2" data-k="'+base+'_limpi" onchange="sv(this.dataset.k,this.value);doSave()"><option value="">—</option><option value="OK"'+(limpi==='OK'?' selected':'')+'>OK</option><option value="Revisar"'+(limpi==='Revisar'?' selected':'')+'>Revisar</option></select></td>'
+        :'<td class="tc" style="color:var(--text4);font-size:9px">N/A</td>');
       html+='</tr>';
     });
   }
@@ -2770,529 +2833,96 @@ function renderDepositos(mesKeyOpt){
   cont.innerHTML=html;
 }
 
-// ── DIARIO AGUA FRÍA SANITARIA ────────────────────
+// ── DIARIO AGUA FRÍA SANITARIA ────────────────────────
 var afsDate2=ds(new Date());
 function afsHoy(){afsDate2=ds(new Date());var d=document.getElementById('afsDate');if(d)d.value=afsDate2;renderAFS();}
-function afsPN(n){var d=new Date(afsDate2);d.setDate(d.getDate()+n);afsDate2=ds(d);var el=document.getElementById('afsDate');if(el)el.value=afsDate2;renderAFS();}
-var AFS_PTS=[
-  {n:'40',name:'Deposito Aporte Box Lavado'},
-  {n:'5',name:'Lavabo Aseo Antecamara Congelado'},
-];
+function afsPN(n){var d=new Date(afsDate2+'T12:00:00');d.setDate(d.getDate()+n);afsDate2=ds(d);var el=document.getElementById('afsDate');if(el)el.value=afsDate2;renderAFS();}
+var AFS_PTS=[{n:'40',name:'Deposito Aporte Box Lavado'},{n:'5',name:'Lavabo Aseo Antecamara Congelado'}];
 function renderAFS(){
   var dateEl=document.getElementById('afsDate');
   if(dateEl&&dateEl.value)afsDate2=dateEl.value;
   var lbl=document.getElementById('afsDateLbl');
   if(lbl){try{var d=new Date(afsDate2+'T12:00:00');lbl.textContent=d.toLocaleDateString('es-ES',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});}catch(e){lbl.textContent=afsDate2;}}
-  var tec=gv('__tecnico')||'';var dni=gv('__tecnicoDNI')||'';
+  var tec=gv('__tecnico')||'';
   var tecEl=document.getElementById('afsTec');if(tecEl&&!tecEl.value)tecEl.value=tec;
-  var dniEl=document.getElementById('afsDNI');if(dniEl&&!dniEl.value)dniEl.value=dni;
-  var tot=0;var ok=0;var alrt=0;
+  var dniEl=document.getElementById('afsDNI');if(dniEl&&!dniEl.value)dniEl.value=gv('__tecnicoDNI')||'';
+  var tot=0,ok=0,alrt=0;
   var html='<table class="dt" style="min-width:400px">';
-  html+='<thead><tr><th>Nr</th><th>AGUA FRIA SANITARIA</th>';
+  html+='<thead><tr><th>Nr</th><th>AGUA FRÍA SANITARIA</th>';
   html+='<th class="tc">pH<br><small>DIARIO</small></th>';
-  html+='<th class="tc">CLORO<br><small>DIARIO mg/L</small></th>';
-  html+='<th class="tc">TEMPERATURA<br><small>SEMANAL DEP.APORTE</small></th>';
-  html+='</tr></thead><tbody>';
+  html+='<th class="tc">CLORO<br><small>mg/L DIARIO</small></th>';
+  html+='<th class="tc">TEMP<br><small>°C SEMANAL</small></th></tr></thead><tbody>';
   AFS_PTS.forEach(function(p){
     var kph=mk('afs',afsDate2,p.n,'ph');
     var kcl=mk('afs',afsDate2,p.n,'cl');
     var ktmp=mk('afs',afsDate2,p.n,'tmp');
-    var ph=gv(kph);var cl=gv(kcl);var tmp=gv(ktmp);
+    var ph=gv(kph),cl=gv(kcl),tmp=gv(ktmp);
     if(ph||cl)tot++;
-    var phN=parseFloat(ph);var clN=parseFloat(cl);
-    var phBad=ph&&(phN<6.5||phN>9.5);var clBad=cl&&(clN<0.2||clN>1.0);
+    var phN=parseFloat(ph),clN=parseFloat(cl);
+    var phBad=ph&&(phN<6.5||phN>9.5),clBad=cl&&(clN<0.2||clN>1.0);
     if(phBad||clBad)alrt++;else if(ph||cl)ok++;
     html+='<tr>';
-    html+='<td><b>'+p.n+'</b></td>';
-    html+='<td style="font-size:11px;font-weight:600">'+p.name+'</td>';
+    html+='<td><b>'+p.n+'</b></td><td style="font-size:11px;font-weight:600">'+p.name+'</td>';
     html+='<td class="tc"><input type="text" class="ci2'+(phBad?' bad':ph?' ok':'')+'" placeholder="pH" value="'+ph+'" inputmode="decimal" data-k="'+kph+'" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
     html+='<td class="tc"><input type="text" class="ci2'+(clBad?' bad':cl?' ok':'')+'" placeholder="mg/L" value="'+cl+'" inputmode="decimal" data-k="'+kcl+'" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
-    // Temperatura solo para Nº40 (depósito aporte)
-    if(p.n==='40'){
-      html+='<td class="tc"><input type="text" class="ci2" placeholder="°C" value="'+tmp+'" inputmode="decimal" data-k="'+ktmp+'" onchange="sv(this.dataset.k,this.value);doSave()"></td>';
-    }else{
-      html+='<td class="tc" style="font-size:9px;color:var(--text3)">— semanal —</td>';
-    }
+    html+=(p.n==='40'
+      ?'<td class="tc"><input type="text" class="ci2" placeholder="°C" value="'+tmp+'" inputmode="decimal" data-k="'+ktmp+'" onchange="sv(this.dataset.k,this.value);doSave()"></td>'
+      :'<td class="tc" style="font-size:10px;color:var(--text3)">— semanal —</td>');
     html+='</tr>';
   });
-  // Observaciones
-  var obsK=mk('afs',afsDate2,'obs');
   html+='</tbody></table>';
-  html+='<div style="margin-top:10px"><label class="fl">Observaciones del dia</label><input class="fi" style="font-size:12px" placeholder="Anotar cualquier incidencia, anomalia o accion correctiva..." value="'+gv(obsK).replace(/"/g,'&quot;')+'" data-k="'+obsK+'" onchange="sv(this.dataset.k,this.value);doSave()"></div>';
+  var obsK=mk('afs',afsDate2,'obs');
+  html+='<div style="margin-top:10px"><label class="fl">Observaciones del día</label>'
+    +'<input class="fi" style="font-size:12px" placeholder="Anotar cualquier incidencia o anomalía..." value="'
+    +gv(obsK).replace(/"/g,'&quot;')+'" data-k="'+obsK+'" onchange="sv(this.dataset.k,this.value);doSave()"></div>';
   var cont=document.getElementById('afsCont');if(cont)cont.innerHTML=html;
-  var pct=tot>0?Math.round(ok/tot*100):0;
-  var t=document.getElementById('afsTot');if(t)t.textContent=tot*2;
-  var o=document.getElementById('afsOk');if(o)o.textContent=ok;
-  var al=document.getElementById('afsAlrt');if(al)al.textContent=alrt;
-  var pc=document.getElementById('afsPct');if(pc)pc.textContent=(tot>0?Math.round((ok+alrt)/tot*100):0)+'%';
+  var el;
+  el=document.getElementById('afsTot');if(el)el.textContent=tot*2;
+  el=document.getElementById('afsOk');if(el)el.textContent=ok;
+  el=document.getElementById('afsAlrt');if(el)el.textContent=alrt;
+  el=document.getElementById('afsPct');if(el)el.textContent=(tot>0?Math.round((ok+alrt)/tot*100):0)+'%';
 }
 
-// ── INTEGRAR EN goTab ─────────────────────────────
-var _origGoTab=goTab;
-goTab=function(id,el){
-  _origGoTab(id,el);
-  if(id==='acsm'){initACSMensual();renderACSMensual();}
-  if(id==='diariobox'){renderAFS();}
-  if(id==='acs'){renderACS();}
-};
-
-// ── INTEGRAR EN initApp ───────────────────────────
-var _origInitApp2=initApp;
-initApp=function(){
-  _origInitApp2();
-  var afsD=document.getElementById('afsDate');if(afsD){afsD.value=ds(new Date());afsDate2=afsD.value;}
-  renderAFS();
-  initACSMensual();renderACSMensual();
-  renderACS();
-};
-</script>
-
-<script>
-// ═══════════════════════════════════════════════════
-// MEJORAS PROFESIONALES v7.0
-// ═══════════════════════════════════════════════════
-
-// ── 1. DARK MODE ─────────────────────────────────
-function toggleDark(){
-  var isDark=document.documentElement.getAttribute('data-theme')==='dark';
-  document.documentElement.setAttribute('data-theme',isDark?'light':'dark');
-  localStorage.setItem('__theme',isDark?'light':'dark');
-  var btn=document.getElementById('btnDark');
-  if(btn)btn.textContent=isDark?'🌙':'☀️';
-}
-function initTheme(){
-  var t=localStorage.getItem('__theme')||'light';
-  document.documentElement.setAttribute('data-theme',t);
-  var btn=document.getElementById('btnDark');
-  if(btn)btn.textContent=t==='dark'?'☀️':'🌙';
-}
-document.addEventListener('DOMContentLoaded',initTheme);
-
-// ── 2. INDEXEDDB — SISTEMA OFFLINE REAL ──────────
-var IDB={db:null,ready:false};
-(function(){
-  var req=indexedDB.open('AquaControlPro',2);
-  req.onupgradeneeded=function(e){
-    var db=e.target.result;
-    if(!db.objectStoreNames.contains('data'))db.createObjectStore('data',{keyPath:'uid'});
-    if(!db.objectStoreNames.contains('queue'))db.createObjectStore('queue',{autoIncrement:true});
-    if(!db.objectStoreNames.contains('audit'))db.createObjectStore('audit',{autoIncrement:true});
-  };
-  req.onsuccess=function(e){IDB.db=e.target.result;IDB.ready=true;console.log('[IDB] Listo');};
-  req.onerror=function(){console.warn('[IDB] Error al abrir');};
-})();
-function idbSave(uid,data){
-  if(!IDB.ready)return;
-  var tx=IDB.db.transaction('data','readwrite');
-  tx.objectStore('data').put({uid:uid,data:data,ts:Date.now()});
-}
-function idbLoad(uid,cb){
-  if(!IDB.ready){cb(null);return;}
-  var tx=IDB.db.transaction('data','readonly');
-  var req=tx.objectStore('data').get(uid);
-  req.onsuccess=function(e){cb(e.target.result?e.target.result.data:null);};
-  req.onerror=function(){cb(null);};
-}
-function idbQueueAdd(item){
-  if(!IDB.ready)return;
-  var tx=IDB.db.transaction('queue','readwrite');
-  tx.objectStore('queue').add({item:item,ts:Date.now()});
-}
-
-// ── 3. AUDITORÍA DE ACCIONES ─────────────────────
-var AUDIT_LOG=[];
-function auditLog(action,detail){
-  var entry={
-    action:action,
-    detail:detail||'',
-    user:typeof co!=='undefined'&&co?co.email:'—',
-    ts:new Date().toISOString(),
-    time:new Date().toLocaleString('es-ES')
-  };
-  AUDIT_LOG.unshift(entry);
-  if(AUDIT_LOG.length>500)AUDIT_LOG=AUDIT_LOG.slice(0,500);
-  try{localStorage.setItem('__audit',JSON.stringify(AUDIT_LOG.slice(0,100)));}catch(e){}
-  // Guardar también en IndexedDB
-  if(IDB.ready){
-    var tx=IDB.db.transaction('audit','readwrite');
-    tx.objectStore('audit').add(entry);
-  }
-}
-function loadAuditLog(){
-  try{var s=localStorage.getItem('__audit');if(s)AUDIT_LOG=JSON.parse(s);}catch(e){}
-}
-
-// ── 4. TOAST MEJORADO CON TIPOS ──────────────────
-function toast(msg,type){
-  var t=document.getElementById('toast');
-  if(!t)return;
-  t.textContent=msg;
-  t.className='on '+(type||'');
-  clearTimeout(t._t);
-  t._t=setTimeout(function(){t.className='';},type==='error'?4000:2500);
-}
-
-// ── 5. OFFLINE DETECTION ─────────────────────────
-function updateOnlineStatus(){
-  var badge=document.getElementById('offlineBadge');
-  if(badge)badge.classList.toggle('on',!navigator.onLine);
-  if(navigator.onLine)syncPendingQueue();
-}
-window.addEventListener('online',updateOnlineStatus);
-window.addEventListener('offline',updateOnlineStatus);
-function syncPendingQueue(){
-  if(!IDB.ready)return;
-  var tx=IDB.db.transaction('queue','readwrite');
-  var store=tx.objectStore('queue');
-  var req=store.getAll();
-  req.onsuccess=function(e){
-    var items=e.target.result||[];
-    if(items.length>0){
-      console.log('[SYNC] Sincronizando',items.length,'elementos pendientes');
-      store.clear();
-      toast('☁️ '+items.length+' registros sincronizados','success');
+// ── INTEGRAR EN goTab SIN OVERRIDE ───────────────────
+// Usar evento personalizado en lugar de override
+document.addEventListener('DOMContentLoaded',function(){
+  setTimeout(function(){
+    // Parchear goTab de forma segura
+    if(typeof goTab==='function'){
+      var _gt=goTab;
+      goTab=function(id,el){
+        _gt(id,el);
+        if(id==='acsm'){initACSMensual();renderACSMensual();}
+        if(id==='diariobox'){renderAFS();}
+        if(id==='config'){renderAuditSection();}
+      };
     }
-  };
-}
-
-// ── 6. DOCSAVE MEJORADO CON AUDITORÍA E IDB ──────
-// Override doSave para añadir auditoría e IndexedDB
-var _origDoSave=null;
-function patchDoSave(){
-  if(typeof doSave!=='function')return;
-  _origDoSave=doSave;
-  doSave=function(){
-    _origDoSave();
-    // Guardar en IndexedDB como backup offline
-    if(typeof co!=='undefined'&&co&&typeof DATA!=='undefined'){
-      idbSave(co.uid||co.code,DATA);
-    }
-    // Si está offline, añadir a cola
-    if(!navigator.onLine){
-      idbQueueAdd({type:'save',ts:Date.now()});
-      toast('💾 Guardado localmente (sin conexión)','warn');
-    }
-  };
-}
-
-// ── 7. QR DE VALIDACIÓN ──────────────────────────
-function generateQR(text){
-  // QR usando API gratuita
-  var size=150;
-  var url='https://api.qrserver.com/v1/create-qr-code/?size='+size+'x'+size+'&data='+encodeURIComponent(text);
-  return '<img src="'+url+'" width="'+size+'" height="'+size+'" alt="QR Validación" style="border:1px solid #e2e8f0;border-radius:8px;">';
-}
-function showQRValidacion(){
-  var now=new Date();
-  var tec=typeof gv==='function'?gv('__tecnico'):'—';
-  var empresa=typeof co!=='undefined'&&co?co.name:'AquaControl Pro';
-  var qrData='AQUAPRO|'+empresa+'|'+tec+'|'+now.toLocaleString('es-ES')+'|VALID';
-  var modal=document.createElement('div');
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:center;justify-content:center;';
-  modal.innerHTML='<div style="background:var(--surface);border-radius:16px;padding:24px;text-align:center;max-width:280px;">'
-    +'<div style="font-size:13px;font-weight:700;margin-bottom:12px">🔲 QR de Validación</div>'
-    +generateQR(qrData)
-    +'<div style="font-size:10px;color:var(--text3);margin-top:8px">'+empresa+' · '+tec+'</div>'
-    +'<div style="font-size:9px;color:var(--text3)">'+now.toLocaleString('es-ES')+'</div>'
-    +'<button onclick="this.parentElement.parentElement.remove()" style="margin-top:14px;padding:8px 20px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">Cerrar</button>'
-    +'</div>';
-  document.body.appendChild(modal);
-  auditLog('QR_GENERADO','Validación QR generada');
-}
-
-// ── 8. ROLES DE USUARIO ──────────────────────────
-var USER_ROLE='tecnico'; // admin | supervisor | tecnico | lectura
-var ROLES={
-  admin:{canEdit:true,canDelete:true,canExport:true,canConfig:true,canViewAll:true},
-  supervisor:{canEdit:true,canDelete:false,canExport:true,canConfig:false,canViewAll:true},
-  tecnico:{canEdit:true,canDelete:false,canExport:true,canConfig:false,canViewAll:false},
-  lectura:{canEdit:false,canDelete:false,canExport:true,canConfig:false,canViewAll:false}
-};
-function canDo(action){
-  var role=ROLES[USER_ROLE]||ROLES['tecnico'];
-  return role[action]===true;
-}
-function loadUserRole(){
-  if(typeof gv==='function'){
-    var r=gv('__userRole');
-    if(r&&ROLES[r])USER_ROLE=r;
-  }
-}
-
-// ── 9. AÑADIR QR AL MENÚ ─────────────────────────
-function addQRToMenu(){
-  var omenu=document.getElementById('omenu');
-  if(!omenu||document.getElementById('btnQRMenu'))return;
-  var item=document.createElement('div');
-  item.className='omi';item.id='btnQRMenu';
-  item.innerHTML='🔲 QR Validación';
-  item.onclick=function(){document.getElementById('omenu').classList.remove('on');showQRValidacion();};
-  // Insertar antes de "Cerrar sesión"
-  var items=omenu.querySelectorAll('.omi');
-  var lastItem=items[items.length-1];
-  omenu.insertBefore(item,lastItem);
-}
-
-// ── 10. INTEGRACIÓN CON initApp ──────────────────
-var _origIA3=null;
-function patchInitApp(){
-  if(typeof initApp!=='function')return;
-  _origIA3=initApp;
-  initApp=function(){
-    _origIA3();
-    initTheme();
+    // Inicializar AFS con fecha hoy
+    afsDate2=ds(new Date());
+    var afsD=document.getElementById('afsDate');if(afsD)afsD.value=afsDate2;
+    renderAFS();
+    // Inicializar ACS Mensual
+    initACSMensual();
+    renderACSMensual();
+    // Inicializar auditoría
     loadAuditLog();
-    loadUserRole();
-    patchDoSave();
+    // Online/offline
     updateOnlineStatus();
-    addQRToMenu();
-    auditLog('LOGIN','Usuario accedió al sistema');
-  };
-}
-
-// Intentar parchear cuando Firebase esté listo
-var _patchInterval=setInterval(function(){
-  if(typeof initApp==='function'&&typeof doSave==='function'){
-    clearInterval(_patchInterval);
-    patchInitApp();
-  }
-},200);
-
-// ── 11. AÑADIR SECCIÓN AUDITORÍA EN CONFIG ────────
-function renderAuditSection(){
-  var el=document.getElementById('auditSection');
-  if(!el)return;
-  loadAuditLog();
-  if(!AUDIT_LOG.length){el.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px">Sin acciones registradas</div>';return;}
-  el.innerHTML='<div style="overflow-y:auto;max-height:300px">'
-    +AUDIT_LOG.slice(0,50).map(function(a){
-      return '<div style="display:flex;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:11px">'
-        +'<div style="color:var(--text3);white-space:nowrap;font-family:monospace;font-size:9px">'+a.time+'</div>'
-        +'<div style="flex:1"><span style="font-weight:700">'+a.action+'</span>'+(a.detail?' · '+a.detail:'')+'</div>'
-        +'</div>';
-    }).join('')
-    +'</div>';
-}
+    // QR en menú
+    setTimeout(function(){
+      var omenu=document.getElementById('omenu');
+      if(omenu&&!document.getElementById('btnQRMenu')){
+        var item=document.createElement('div');
+        item.className='omi';item.id='btnQRMenu';
+        item.innerHTML='🔲 QR Validación';
+        item.onclick=function(){document.getElementById('omenu').classList.remove('on');showQRValidacion();};
+        var items=omenu.querySelectorAll('.omi');
+        if(items.length>0)omenu.insertBefore(item,items[items.length-1]);
+      }
+    },2000);
+  },1000);
+});
 </script>
 
-<script>
-
-// ═══════════════════════════════════════════════════════════════
-// MEJORAS v4.0 — AquaControlPro
-// ═══════════════════════════════════════════════════════════════
-
-// ── HISTORIAL DE ALERTAS ────────────────────────────────────────
-function getAlertHist(){try{const s=localStorage.getItem('__alertHist_'+(co?co.code:''));if(s)return JSON.parse(s);}catch(e){}return [];}
-function saveAlertHist(h){try{localStorage.setItem('__alertHist_'+(co?co.code:''),JSON.stringify(h.slice(0,100)));}catch(e){}}
-function addAlertToHist(msg,type){
-  const h=getAlertHist();
-  h.unshift({msg,type,time:new Date().toLocaleString('es-ES')});
-  saveAlertHist(h);
-  renderAlertHist();
-}
-function clearAlertHist(){if(!confirm('¿Borrar historial de alertas?'))return;localStorage.removeItem('__alertHist_'+(co?co.code:''));renderAlertHist();}
-function renderAlertHist(){
-  const el=document.getElementById('alertHistList');if(!el)return;
-  const h=getAlertHist();
-  const badge=document.getElementById('alertHistBadge');if(badge)badge.textContent=h.length;
-  if(!h.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">✅ Sin alertas recientes</div>';return;}
-  el.innerHTML=h.map(a=>`
-    <div class="alert-hist-item">
-      <div class="alert-hist-dot ${a.type}"></div>
-      <div class="alert-hist-txt">${a.msg}</div>
-      <div class="alert-hist-time">${a.time}</div>
-    </div>`).join('');
-}
-
-// ── OVERRIDE checkAlerts para añadir historial ────────────────
-const _origCheckAlerts = checkAlerts;
-checkAlerts = function(){
-  if(!modOn('alertas'))return;
-  const cfg=getAlertasCfg();const newAlerts=[];
-  const today=new Date();const yr=parseInt(document.getElementById('ppclYr').value)||today.getFullYear();
-  const d=today.getDate();
-  getConds().forEach(c=>{
-    const ph=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,'ph')));
-    const tmp=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,'temperatura')));
-    const trb=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,'turbidez')));
-    if(cfg.ph_low!==false&&ph&&ph<7.2)newAlerts.push({t:'bad',m:tr('alert_ph_low')+c.name+': '+ph});
-    if(cfg.ph_high!==false&&ph&&ph>7.8)newAlerts.push({t:'bad',m:tr('alert_ph_high')+c.name+': '+ph});
-    if(cfg.temp_alta!==false&&tmp&&tmp>37)newAlerts.push({t:'bad',m:tr('alert_temp')+c.name+': '+tmp+'°C'});
-    if(cfg.turbidez!==false&&trb&&trb>2)newAlerts.push({t:'warn',m:tr('alert_turb')+c.name+': '+trb+' NTU'});
-  });
-  getPiscs().forEach(p=>{
-    const cl=parseFloat(gv(mk('pisc',ds(today),'manana',p.id,'cloro')));
-    const ph=parseFloat(gv(mk('pisc',ds(today),'manana',p.id,'ph')));
-    if(cfg.cloro_low!==false&&cl&&cl<0.5)newAlerts.push({t:'bad',m:tr('alert_cl_low')+p.name+': '+cl+' mg/L'});
-    if(cfg.cloro_high!==false&&cl&&cl>2.0)newAlerts.push({t:'warn',m:tr('alert_cl_high')+p.name+': '+cl+' mg/L'});
-    if(cfg.ph_low!==false&&ph&&ph<7.2)newAlerts.push({t:'bad',m:tr('alert_ph_low_p')+p.name+': '+ph});
-  });
-  const cont=document.getElementById('alertsContainer');
-  if(cont)cont.innerHTML=newAlerts.map(a=>'<div class="abanner '+a.t+'">'+a.m+'</div>').join('');
-  // Añadir al historial si hay alertas nuevas
-  newAlerts.forEach(a=>addAlertToHist(a.m,a.t));
-  // Push notification si las hay
-  if(newAlerts.length>0)sendPushNotification('⚠️ AquaControlPro',newAlerts[0].m);
-};
-
-// ── ANALÍTICA AVANZADA ─────────────────────────────────────────
-let analyticsParam='ph';let analyticsChart=null;
-function setAnalyticsParam(p){analyticsParam=p;renderAnalytics();}
-function renderAnalytics(){
-  const yr=parseInt(document.getElementById('ppclYr')?document.getElementById('ppclYr').value:new Date().getFullYear())||new Date().getFullYear();
-  const days=new Date(yr,ppclMo+1,0).getDate();const conds=getConds();
-  const param=analyticsParam;
-  // Calcular métricas globales
-  let all=[],prevAll=[];
-  const prevMo=ppclMo===0?11:ppclMo-1;const prevYr=ppclMo===0?yr-1:yr;
-  const prevDays=new Date(prevYr,prevMo+1,0).getDate();
-  conds.forEach(c=>{
-    for(let d=1;d<=days;d++){const v=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,param)));if(!isNaN(v)&&v>0)all.push(v);}
-    for(let d=1;d<=prevDays;d++){const v=parseFloat(gv(mk('ppcl',prevYr,prevMo,c.n,d,param)));if(!isNaN(v)&&v>0)prevAll.push(v);}
-  });
-  const avg=all.length?all.reduce((a,b)=>a+b,0)/all.length:0;
-  const prevAvg=prevAll.length?prevAll.reduce((a,b)=>a+b,0)/prevAll.length:0;
-  const mn=all.length?Math.min(...all):0;const mx=all.length?Math.max(...all):0;
-  const outRange=all.filter(v=>{
-    if(param==='ph')return v<7||v>8.5;
-    if(param==='temperatura')return v>37;
-    if(param==='turbidez')return v>5;
-    return false;
-  }).length;
-  const trendDir=avg>prevAvg?'up':avg<prevAvg?'down':'eq';
-  const trendTxt=avg>prevAvg?'▲ +'+Math.abs(avg-prevAvg).toFixed(2)+' vs mes ant.':avg<prevAvg?'▼ -'+Math.abs(avg-prevAvg).toFixed(2)+' vs mes ant.':'= Sin cambio';
-  const kpiEl=document.getElementById('analyticsKpis');
-  if(kpiEl)kpiEl.innerHTML=`
-    <div class="analytics-card"><div class="analytics-val" style="color:var(--blue)">${avg?avg.toFixed(2):'—'}</div><div class="analytics-lbl">PROMEDIO ${param.toUpperCase()}</div><div class="analytics-trend ${trendDir}">${trendTxt}</div></div>
-    <div class="analytics-card"><div class="analytics-val" style="color:var(--green)">${mn?mn.toFixed(2):'—'}</div><div class="analytics-lbl">MÍNIMO</div></div>
-    <div class="analytics-card"><div class="analytics-val" style="color:var(--amber)">${mx?mx.toFixed(2):'—'}</div><div class="analytics-lbl">MÁXIMO</div></div>
-    <div class="analytics-card"><div class="analytics-val" style="color:${outRange>0?'var(--red)':'var(--green)'}">${outRange}</div><div class="analytics-lbl">FUERA DE RANGO</div></div>`;
-  // Gráfica comparativa mes actual vs anterior
-  const canvas=document.getElementById('analyticsChart');if(!canvas)return;
-  if(analyticsChart)analyticsChart.destroy();
-  const labels=[];const d1=[];const d2=[];
-  const maxD=Math.max(days,prevDays);
-  for(let d=1;d<=maxD;d++){
-    labels.push(d+'');
-    let s1=0,c1=0;conds.forEach(c=>{const v=parseFloat(gv(mk('ppcl',yr,ppclMo,c.n,d,param)));if(!isNaN(v)&&v>0){s1+=v;c1++;}});
-    d1.push(c1?s1/c1:null);
-    let s2=0,c2=0;conds.forEach(c=>{const v=parseFloat(gv(mk('ppcl',prevYr,prevMo,c.n,d,param)));if(!isNaN(v)&&v>0){s2+=v;c2++;}});
-    d2.push(c2?s2/c2:null);
-  }
-  analyticsChart=new Chart(canvas,{
-    type:'line',
-    data:{labels,datasets:[
-      {label:MOS[ppclMo]+' '+yr,data:d1,borderColor:'#2589c7',backgroundColor:'rgba(37,137,199,0.1)',tension:0.4,spanGaps:true,pointRadius:1,borderWidth:2},
-      {label:MOS[prevMo]+' '+prevYr,data:d2,borderColor:'#8899aa',backgroundColor:'transparent',tension:0.4,spanGaps:true,pointRadius:0,borderDash:[4,4],borderWidth:1.5}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:9},boxWidth:12}}},scales:{y:{beginAtZero:false,ticks:{font:{size:8}}},x:{ticks:{font:{size:8}}}}}
-  });
-}
-
-// ── RECORDATORIOS ──────────────────────────────────────────────
-const REMINDERS=[
-  {icon:'🌡️',title:'Control diario condensadores',sub:'Biocidad · Temperatura · pH · Turbidez',freq:1,key:'cond_daily'},
-  {icon:'🏊',title:'Análisis piscina (mañana)',sub:'Cloro · pH · Temperatura · Turbidez',freq:1,key:'pisc_morning'},
-  {icon:'💧',title:'Control semanal ACS',sub:'Grifos y agua caliente sanitaria',freq:7,key:'acs_weekly'},
-  {icon:'🧪',title:'Control agua potable',sub:'Cloro libre · pH · Turbidez',freq:7,key:'pot_weekly'},
-  {icon:'📋',title:'Informe mensual',sub:'Generación y envío de informe oficial',freq:30,key:'monthly_report'},
-  {icon:'🔬',title:'Análisis microbiológico legionella',sub:'Toma de muestras periódica obligatoria',freq:90,key:'micro_legionella'},
-];
-function renderReminders(){
-  const el=document.getElementById('remindersList');if(!el)return;
-  const now=new Date();
-  el.innerHTML=REMINDERS.map(r=>{
-    const last=localStorage.getItem('__rem_'+r.key+(co?'_'+co.code:''));
-    const lastDate=last?new Date(parseInt(last)):null;
-    const daysAgo=lastDate?Math.floor((now-lastDate)/86400000):999;
-    const daysLeft=Math.max(0,r.freq-daysAgo);
-    const urgent=daysLeft<=1;const soon=daysLeft<=3;
-    const color=urgent?'var(--red)':soon?'var(--amber)':'var(--blue)';
-    const label=daysLeft===0?'¡HOY!':daysLeft===1?'1 día':daysLeft+' días';
-    return `<div class="reminder-card" onclick="markReminderDone('${r.key}')">
-      <div class="reminder-icon">${r.icon}</div>
-      <div class="reminder-txt"><div class="reminder-title">${r.title}</div><div class="reminder-sub">${r.sub}</div></div>
-      <div class="reminder-days" style="color:${color}" title="Toca para marcar como hecho">${label}</div>
-    </div>`;
-  }).join('');
-}
-function markReminderDone(key){
-  localStorage.setItem('__rem_'+key+(co?'_'+co.code:''),Date.now().toString());
-  toast('✅ Recordatorio marcado como completado');
-  renderReminders();
-}
-
-// ── NOTIFICACIONES PUSH ────────────────────────────────────────
-let pushGranted=false;
-function requestPushPermission(){
-  const msg=document.getElementById('pushMsg');const btn=document.getElementById('btnPush');
-  if(!('Notification' in window)){if(msg)msg.textContent='⚠️ Tu navegador no soporta notificaciones push';return;}
-  if(Notification.permission==='granted'){pushGranted=true;if(msg)msg.textContent='✅ Notificaciones ya activadas';if(btn)btn.textContent='✅ Notificaciones activas';return;}
-  if(Notification.permission==='denied'){if(msg)msg.textContent='❌ Bloqueadas. Actívalas en la configuración de tu navegador';return;}
-  Notification.requestPermission().then(p=>{
-    if(p==='granted'){pushGranted=true;if(msg)msg.textContent='✅ Notificaciones activadas correctamente';if(btn){btn.textContent='✅ Notificaciones activas';btn.style.background='var(--green)';}toast('🔔 Notificaciones push activadas');}
-    else{if(msg)msg.textContent='⚠️ Permiso denegado';}
-  });
-}
-function sendPushNotification(title,body){
-  if(!pushGranted||Notification.permission!=='granted')return;
-  // Throttle: máx 1 notif cada 5 min
-  const lastPush=parseInt(localStorage.getItem('__lastPush')||'0');
-  if(Date.now()-lastPush<300000)return;
-  localStorage.setItem('__lastPush',Date.now().toString());
-  try{new Notification(title,{body});}catch(e){}
-}
-function initPushState(){
-  if(!('Notification' in window))return;
-  pushGranted=Notification.permission==='granted';
-  const btn=document.getElementById('btnPush');const msg=document.getElementById('pushMsg');
-  if(pushGranted){if(btn)btn.textContent='✅ Notificaciones activas';if(msg)msg.textContent='✅ Recibirás alertas en este dispositivo';}
-  const ps=document.getElementById('pushStatus');
-  if(ps){
-    const pct=Notification.permission;
-    ps.innerHTML=`<div style="background:${pct==='granted'?'var(--green-l)':pct==='denied'?'var(--red-l)':'var(--amber-l)'};border-radius:8px;padding:8px 12px;font-size:11px;font-weight:600;color:${pct==='granted'?'var(--green)':pct==='denied'?'var(--red)':'var(--amber)'}">
-      ${pct==='granted'?'🟢 Notificaciones activadas':pct==='denied'?'🔴 Notificaciones bloqueadas':'🟡 Notificaciones no configuradas'}
-    </div>`;
-  }
-}
-
-// ── OVERRIDE initApp para añadir nuevas funciones ─────────────
-const _origInitApp = initApp;
-initApp = function(){
-  _origInitApp();
-  renderAlertHist();
-  renderReminders();
-  renderAnalytics();
-  initPushState();
-  // Auto-check push banner
-  if('Notification' in window && Notification.permission==='default'){
-    const ab=document.getElementById('alertsContainer');
-    if(ab){
-      const banner=document.createElement('div');
-      banner.className='push-banner';
-      banner.id='pushBannerAuto';
-      banner.innerHTML='<div class="push-banner-ico">🔔</div><div class="push-banner-txt"><b>Activa las notificaciones push</b><br>Recibe alertas en tiempo real</div><button class="push-banner-btn" onclick="requestPushPermission();var b=document.getElementById(\'pushBannerAuto\');if(b)b.remove()">Activar</button>';
-      ab.prepend(banner);
-    }
-  }
-  // Recordatorio periódico
-  setInterval(()=>{renderReminders();renderAlertHist();},60000);
-};
-
-// ── OVERRIDE renderDashboard para incluir analítica ──────────
-const _origRenderDashboard = renderDashboard;
-renderDashboard = function(){
-  _origRenderDashboard();
-  renderAnalytics();
-  renderReminders();
-  renderAlertHist();
-};
-
-if('serviceWorker' in navigator){
-  window.addEventListener('load',function(){
-    navigator.serviceWorker.register('./sw.js').catch(function(){});
-  });
-}
-</script>
 </body>
 </html>
