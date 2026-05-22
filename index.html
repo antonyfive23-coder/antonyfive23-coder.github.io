@@ -65,6 +65,9 @@
   /* Transiciones suaves globales */
   --transition:all 0.2s ease;
 }
+/* Config y tabs nuevos SIEMPRE visibles */
+.tbtn[onclick*="config"],.tbtn[onclick*="acsm"],.tbtn[onclick*="diariobox"]{display:inline-flex!important;}
+#bnav .nitem[data-tab="config"]{display:flex!important;opacity:1!important;}
 /* ── DARK MODE ─────────────────────────────── */
 [data-theme="dark"]{
   --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--border:#30363d;
@@ -1734,6 +1737,17 @@ function setLogo(src){
 }
 function showApp(){
   document.getElementById('app').classList.add('on');
+  // Forzar módulos activos
+  const mods={};
+  ['ppcl','piscina','acs','potable','checklist','incidencias','alertas','firma','fotos','graficas'].forEach(id=>mods[id]=true);
+  sv('__mods',JSON.stringify(mods));
+  // Datos demo si cuenta nueva
+  if(!gv('__conds')&&!gv('__piscs')&&!gv('__grifos')){
+    sv('__conds',JSON.stringify([{n:1,name:'Condensador Evap. Nº 1'},{n:2,name:'Condensador Evap. Nº 2'}]));
+    sv('__piscs',JSON.stringify([{id:'p1',name:'Piscina Principal',tipo:'piscina'},{id:'p2',name:'Piscina Infantil',tipo:'piscina'}]));
+    sv('__grifos',JSON.stringify([{n:1,ni:'G01',name:'Ducha vestuario hombres'},{n:2,ni:'G02',name:'Ducha vestuario mujeres'},{n:3,ni:'G03',name:'Grifo cocina'}]));
+    doSave();
+  }
   initApp();
 }
 // ═══ DATA / FIREBASE ════════════════════════════════
@@ -1745,7 +1759,17 @@ function connectData(c,onReady){
   fbRef.on('value',snap=>{
     if(_fbS)return;
     const r=snap.val();if(!r){if(onReady){onReady();onReady=null;}return;}
-    if((r.__ts||0)>(data.__ts||0)){data=r;try{localStorage.setItem('d_'+c.code,JSON.stringify(data));}catch(e){}refreshAll();}
+    if((r.__ts||0)>(data.__ts||0)){
+      data=r;
+      // FIX: nunca dejar que Firebase desactive módulos
+      try{
+        var m=data['__mods']?JSON.parse(data['__mods']):{};
+        ['ppcl','piscina','acs','potable','checklist','incidencias','alertas','firma','fotos','graficas'].forEach(function(id){m[id]=true;});
+        data['__mods']=JSON.stringify(m);
+      }catch(e){}
+      try{localStorage.setItem('d_'+c.code,JSON.stringify(data));}catch(e){}
+      refreshAll();
+    }
     if(onReady){onReady();onReady=null;}
   },e=>{setSS('err','❌ '+e.message);if(onReady){onReady();onReady=null;}});
 }
@@ -1788,7 +1812,7 @@ function initApp(){
   goTab('dashboard',document.querySelector('#bnav .nitem'));
   initLang();
 }
-function refreshAll(){renderPPCL();renderPiscina();renderACS();renderPotable();renderDashboard();renderIncidencias();}
+function refreshAll(){renderCondList();renderPiscList();renderGrifoList();renderPPCL();renderPiscina();renderACS();renderPotable();renderDashboard();renderIncidencias();checkAlerts();loadMods();}
 function updateClock(){const el=document.getElementById('clk');if(el)el.textContent=new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
 // ═══ NAV ═════════════════════════════════════════════
 function goTab(id,el){
@@ -1812,7 +1836,7 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 function logout(){if(!confirm(tr('confirm_logout')))return;co=null;data={};document.getElementById('app').classList.remove('on');document.getElementById('loginScreen').style.display='flex';document.getElementById('step1').style.display='';document.getElementById('btnContinue').style.display='';document.getElementById('step2').classList.remove('on');document.getElementById('codeInp').value='';pinBuf='';updateDots();}
 // ═══ MODULES ════════════════════════════════════════
 function getMods(){try{const s=gv('__mods');if(s)return JSON.parse(s);}catch(e){}return {};}
-function modOn(id){const m=getMods();return m[id]!==false;}
+function modOn(id){return true;} // Módulos siempre activos
 function loadMods(){
   MODULES.forEach(mod=>{
     const on=modOn(mod.id);
@@ -1820,6 +1844,13 @@ function loadMods(){
     if(tb)tb.style.display=on?'':'none';
     const ni=document.querySelector('#bnav .nitem[data-tab="'+mod.id+'"]');
     if(ni)ni.style.display=on?'':'none';
+  });
+  // Config y todos los tabs nuevos siempre visibles
+  ['config','acsm','diariobox','afs'].forEach(function(id){
+    const tb=document.querySelector('.tbtn[onclick*="'+id+'"]');
+    if(tb)tb.style.display='';
+    const ni=document.querySelector('#bnav .nitem[data-tab="'+id+'"]');
+    if(ni)ni.style.display='';
   });
 }
 function renderModules(){
