@@ -449,15 +449,9 @@ textarea.fi{resize:vertical;min-height:80px;}
   </div>
   <button id="fab" onclick="doSave()">💾</button>
   <div id="toast"></div>
-<div id="jsErrPanel" style="display:none;position:fixed;bottom:80px;left:10px;right:10px;background:#c0392b;color:#fff;padding:10px;border-radius:8px;font-size:11px;font-family:monospace;z-index:9999;max-height:120px;overflow-y:auto"></div>
-<div </div>
   <div class="main">
     <!-- DASHBOARD -->
     <div class="tab on" id="tab-dashboard">
-      <div id="dbgPanel"></div>
-      <div style="display:flex;gap:8px;margin-bottom:10px">
-        <button class="btn bp" style="flex:1;font-size:11px" onclick="emergencyReset()">🔄 Resetear e inicializar datos</button>
-      </div>
       <div id="alertsContainer"></div>
       <div class="kg">
         <div class="kc"><div class="kv" id="kpiReg" style="color:var(--co,var(--blue))">0</div><div class="kl">REGISTROS HOY</div><div style="font-size:9px;color:var(--text4);margin-top:2px" id="kpiSub">—</div></div>
@@ -547,7 +541,6 @@ textarea.fi{resize:vertical;min-height:80px;}
         <div class="cbody on" style="max-height:9999px">
           <div class="pills" id="ppclPills"></div>
           <div class="yrow"><span class="ylbl">AÑO</span><input type="number" class="dinp" id="ppclYr" value="2026" min="2020" max="2040" onchange="renderPPCL()"></div>
-          <div id="ppclDebug" style="display:none;color:red;font-size:11px;padding:8px;background:#fff0f0;border-radius:6px;margin:8px"></div>
           <div style="overflow-x:auto"><div id="ppclGrid"></div></div>
         </div>
       </div>
@@ -862,11 +855,6 @@ textarea.fi{resize:vertical;min-height:80px;}
 </div>
 <script>
 'use strict';
-window.onerror=function(msg,src,line,col,err){
-  var p=document.getElementById('jsErrPanel');
-  if(p){p.style.display='block';p.innerHTML+='<b>ERROR JS:</b> '+msg+'<br>Línea '+line+': '+(err?err.stack.split('\n')[0]:'')+'<br>';}
-  return false;
-};
 
 // ═══ i18n MULTILANGUAGE ══════════════════════════════════════════════════
 const I18N={
@@ -1631,7 +1619,7 @@ function launchApp(company){
 function applyTheme(c){
   document.documentElement.style.setProperty('--co',c.color||'#2589c7');
   document.getElementById('hdrName').textContent=c.name;
-  document.getElementById('hdrCode').textContent='v8.2 · '+c.code;
+  document.getElementById('hdrCode').textContent='v9.0 · '+c.code;
   document.getElementById('cfgCode').textContent=c.code;
   const logo=localStorage.getItem('logo_'+c.code)||c.logo||'';
   setLogo(logo);
@@ -1648,24 +1636,9 @@ function setLogo(src){
   const sl=document.getElementById('splLogo');
   if(sl)sl.innerHTML=src?'<img src="'+src+'">':'💧';
 }
-function emergencyReset(){
-  // Forzar datos de instalaciones
-  sv('__conds',JSON.stringify([{n:1,name:'Condensador Evap. Nº 1'},{n:2,name:'Condensador Evap. Nº 2'}]));
-  sv('__piscs',JSON.stringify([{id:'p1',name:'Piscina Principal',tipo:'piscina'},{id:'p2',name:'Piscina Infantil',tipo:'piscina'}]));
-  sv('__grifos',JSON.stringify([{n:1,ni:'G01',name:'Ducha vestuario hombres'},{n:2,ni:'G02',name:'Ducha vestuario mujeres'},{n:3,ni:'G03',name:'Grifo cocina'}]));
-  var mods={};['ppcl','piscina','acs','potable','checklist','incidencias','alertas','firma','fotos','graficas'].forEach(function(id){mods[id]=true;});
-  sv('__mods',JSON.stringify(mods));
-  doSave();
-  renderCondList();renderPiscList();renderGrifoList();
-  renderPPCL();renderPiscina();renderACS();renderPotable();
-  renderChecklists();renderIncidencias();renderDashboard();loadMods();
-  toast('✅ Datos inicializados correctamente');
-}
 function showApp(){
   document.getElementById('app').classList.add('on');
-  // Forzar módulos activos SIEMPRE
-  try{var m={};['ppcl','piscina','acs','potable','checklist','incidencias','alertas','firma','fotos','graficas'].forEach(function(id){m[id]=true;});sv('__mods',JSON.stringify(m));}catch(e){}
-  // Datos demo si cuenta nueva
+  try{const m={};['ppcl','piscina','acs','potable','checklist','incidencias','alertas','firma','fotos','graficas'].forEach(id=>m[id]=true);sv('__mods',JSON.stringify(m));}catch(e){}
   if(!gv('__conds')&&!gv('__piscs')&&!gv('__grifos')){
     sv('__conds',JSON.stringify([{n:1,name:'Condensador Evap. Nº 1'},{n:2,name:'Condensador Evap. Nº 2'}]));
     sv('__piscs',JSON.stringify([{id:'p1',name:'Piscina Principal',tipo:'piscina'},{id:'p2',name:'Piscina Infantil',tipo:'piscina'}]));
@@ -1685,7 +1658,7 @@ function connectData(c,onReady){
     const r=snap.val();if(!r){if(onReady){onReady();onReady=null;}return;}
     if((r.__ts||0)>(data.__ts||0)){
       data=r;
-      try{var m=data['__mods']?JSON.parse(data['__mods']):{};['ppcl','piscina','acs','potable','checklist','incidencias','alertas','firma','fotos','graficas'].forEach(function(id){m[id]=true;});data['__mods']=JSON.stringify(m);}catch(e){}
+      try{const m=data['__mods']?JSON.parse(data['__mods']):{};['ppcl','piscina','acs','potable','checklist','incidencias','alertas','firma','fotos','graficas'].forEach(id=>{m[id]=true;});data['__mods']=JSON.stringify(m);}catch(e){}
       try{localStorage.setItem('d_'+c.code,JSON.stringify(data));}catch(e){}
       refreshAll();
     }
@@ -1872,8 +1845,6 @@ function renderPPCL(){
   document.getElementById('ppclOk').textContent=fill-alrt;
   document.getElementById('ppclPct').textContent=tot?Math.round(fill/tot*100)+'%':'0%';
 }
-
-
 function colorI(inp,f){
   const v=parseFloat(inp.value);if(!inp.value){inp.className='ci2';return;}
   let c='ok';
@@ -2066,21 +2037,6 @@ function renderIncidencias(){
 }
 // ═══ DASHBOARD ══════════════════════════════════════
 function renderDashboard(){
-  // Debug temporal - mostrar estado de datos
-  var dbg=document.getElementById('dbgPanel');
-  if(dbg){
-    var dc=getConds();var dp=getPiscs();var dg=getGrifos();
-    dbg.innerHTML='<div style="background:#1a2332;color:#4ade80;font-family:monospace;font-size:10px;padding:10px;border-radius:8px;margin-bottom:10px">'
-      +'<b>DEBUG v8.1</b><br>'
-      +'Condensadores: '+dc.length+'<br>'
-      +'Piscinas: '+dp.length+'<br>'
-      +'Grifos: '+dg.length+'<br>'
-      +'__conds raw: '+(gv("__conds")||"VACÍO")+'<br>'
-      +'__mods: '+(gv("__mods")||"VACÍO")+'<br>'
-      +'data keys: '+Object.keys(data).length+'<br>'
-      +'</div>';
-  }
-
   const yr=parseInt(document.getElementById('ppclYr').value)||new Date().getFullYear();
   const days=new Date(yr,ppclMo+1,0).getDate();const conds=getConds();
   let tot=0,fill=0,alrt=0;
@@ -2728,17 +2684,15 @@ renderDashboard = function(){
   renderAlertHist();
 };
 
+// Limpiar caché del SW anterior
 if('serviceWorker' in navigator){
-  // Desregistrar TODOS los service workers para forzar recarga limpia
-  navigator.serviceWorker.getRegistrations().then(function(regs){
-    regs.forEach(function(r){r.unregister();});
+  navigator.serviceWorker.getRegistrations().then(regs=>{regs.forEach(r=>r.unregister());});
+  if(window.caches)caches.keys().then(keys=>keys.forEach(k=>caches.delete(k)));
+}
+if(false&&'serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
   });
-  // Limpiar caches viejos
-  if(window.caches){
-    caches.keys().then(function(names){
-      names.forEach(function(n){caches.delete(n);});
-    });
-  }
 }
 </script>
 </body>
